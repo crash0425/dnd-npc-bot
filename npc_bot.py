@@ -88,7 +88,9 @@ def generate_image(prompt, filename):
 def job():
     print("🕒 Running bot job...")
     npc = generate_npc()
+    print("🧙 Generated NPC:\n", npc) 
     race, char_class = extract_race_and_class(npc)
+    print(f"⚡ Extracted Race: {race}, Class: {char_class}")
     prompt = f"A fantasy portrait of a {race} {char_class} sitting in a medieval tavern, painted in a semi-realistic style."
     image_path = generate_image(prompt, "npc_image.png")
     post_to_facebook(npc, image_path)
