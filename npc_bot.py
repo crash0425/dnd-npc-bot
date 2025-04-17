@@ -143,4 +143,5 @@ def run_scheduler():
 
 if __name__ == "__main__":
     keep_alive()
+    job()  
     run_scheduler()
