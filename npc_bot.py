@@ -132,7 +132,12 @@ def notify_token_refresh():
 # --- Scheduler Loop ---
 def run_scheduler():
     print("📅 Bot scheduler is running...")
-    schedule.every(5).minutes.do(job)
+    schedule.every().monday.at("10:00").do(job)
+    schedule.every().tuesday.at("10:00").do(job)
+    schedule.every().wednesday.at("10:00").do(job)
+    schedule.every().thursday.at("10:00").do(job)
+    schedule.every().friday.at("10:00").do(job)
+    schedule.every().saturday.at("10:00").do(job)
     schedule.every(55).days.do(notify_token_refresh)  # Add token refresh reminder
 
     while True:
