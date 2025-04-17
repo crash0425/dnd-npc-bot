@@ -50,7 +50,8 @@ def post_to_facebook(npc, image_path=None):
         print("⚠️ Facebook credentials missing. Skipping FB post.")
         return
 
-    formatted_post = f"{npc}\n\n#DnD #NPC #FantasyRPG"
+    formatted_post = formatted_post = f"{npc}\n\n{generate_hashtags(npc)}"
+
 
     if image_path:
         url = f"https://graph.facebook.com/{page_id}/photos"
@@ -115,6 +116,20 @@ def extract_race_and_class(npc):
                 if " " in race_class:
                     return race_class.split(" ", 1)
     return "Human", "Fighter"
+def generate_hashtags(npc):
+    hashtags = ['#DnD', '#TavernNPC', '#FantasyRPG']
+
+    race, char_class = extract_race_and_class(npc)
+
+    if race:
+        hashtags.append(f"#{race.replace(' ', '')}")
+    if char_class:
+        hashtags.append(f"#{char_class.replace(' ', '')}")
+
+    # Add bonus general fantasy tags
+    hashtags += ['#FantasyArt', '#CharacterDesign', '#Adventure']
+
+    return ' '.join(hashtags)
 
 # --- Scheduler Loop ---
 def run_scheduler():
