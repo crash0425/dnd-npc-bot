@@ -1,6 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()
 import time
 import schedule
 import requests
@@ -8,15 +6,16 @@ from flask import Flask
 from threading import Thread
 import openai
 import random
+import datetime
+from dotenv import load_dotenv
+load_dotenv()
 
-# --- Web Server to Keep Replit Alive ---
+# --- Web Server to Keep Replit/Render Alive ---
 app = Flask('')
 
 @app.route('/')
 def home():
     return "NPC bot is alive!"
-
-
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
@@ -50,8 +49,7 @@ def post_to_facebook(npc, image_path=None):
         print("⚠️ Facebook credentials missing. Skipping FB post.")
         return
 
-    formatted_post = formatted_post = f"{npc}\n\n{generate_hashtags(npc)}"
-
+    formatted_post = f"{npc}\n\n#DnD #NPC #FantasyRPG"
 
     if image_path:
         url = f"https://graph.facebook.com/{page_id}/photos"
@@ -65,7 +63,6 @@ def post_to_facebook(npc, image_path=None):
 
     if response.status_code == 200:
         print("✅ NPC posted to Facebook!")
-
     else:
         print(f"❌ Facebook error: {response.status_code} - {response.text}")
 
@@ -84,18 +81,7 @@ def generate_image(prompt, filename):
         f.write(image_data)
     return filename
 
-# --- Scheduled Job ---
-def job():
-    print("🕒 Running bot job...")
-    npc = generate_npc()
-    print("🧙 Generated NPC:\n", npc) 
-    race, char_class = extract_race_and_class(npc)
-    print(f"⚡ Extracted Race: {race}, Class: {char_class}")
-    prompt = f"A fantasy portrait of a {race} {char_class} sitting in a medieval tavern, painted in a semi-realistic style."
-    image_path = generate_image(prompt, "npc_image.png")
-    post_to_facebook(npc, image_path)
-
-# --- Helpers ---
+# --- NPC Generation ---
 def generate_npc():
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
@@ -118,32 +104,42 @@ def extract_race_and_class(npc):
                 if " " in race_class:
                     return race_class.split(" ", 1)
     return "Human", "Fighter"
-def generate_hashtags(npc):
-    hashtags = ['#DnD', '#TavernNPC', '#FantasyRPG']
 
+# --- Scheduled Job ---
+def job():
+    print("🕒 Running bot job...")
+    npc = generate_npc()
     race, char_class = extract_race_and_class(npc)
 
-    if race:
-        hashtags.append(f"#{race.replace(' ', '')}")
-    if char_class:
-        hashtags.append(f"#{char_class.replace(' ', '')}")
+    prompt = (
+        f"Ultra-detailed fantasy portrait of a {race} {char_class} "
+        "in a lively medieval tavern setting. "
+        "Background filled with wooden beams, glowing lanterns, and bustling adventurers. "
+        f"The {race} wears realistic {char_class}-themed armor and gear. "
+        "Painted in semi-realistic style, intricate facial expressions, soft light, and vibrant colors. "
+        "Award-winning digital art, 8K resolution, trending on ArtStation."
+    )
 
-    # Add bonus general fantasy tags
-    hashtags += ['#FantasyArt', '#CharacterDesign', '#Adventure']
+    image_path = generate_image(prompt, "npc_image.png")
+    post_to_facebook(npc, image_path)
 
-    return ' '.join(hashtags)
+# --- Token Refresh Reminder ---
+def notify_token_refresh():
+    today = datetime.date.today()
+    refresh_reminder = today + datetime.timedelta(days=5)  # Countdown after 55 days
+    print(f"🔔 Reminder: Your Facebook token should be refreshed soon! Suggested refresh date: {refresh_reminder}")
 
 # --- Scheduler Loop ---
 def run_scheduler():
     print("📅 Bot scheduler is running...")
-    schedule.every().monday.at("10:00").do(job)
-    schedule.every().thursday.at("10:00").do(job)
-    
+    schedule.every(5).minutes.do(job)
+    schedule.every(55).days.do(notify_token_refresh)  # Add token refresh reminder
+
     while True:
         schedule.run_pending()
         time.sleep(30)
 
+# --- Main Start ---
 if __name__ == "__main__":
     keep_alive()
-    job()  
     run_scheduler()
