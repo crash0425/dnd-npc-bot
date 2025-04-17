@@ -136,7 +136,8 @@ def generate_hashtags(npc):
 # --- Scheduler Loop ---
 def run_scheduler():
     print("📅 Bot scheduler is running...")
-   schedule.every(1).minutes.do(job)
+    schedule.every(1).minutes.do(job)
+    
     while True:
         schedule.run_pending()
         time.sleep(30)
