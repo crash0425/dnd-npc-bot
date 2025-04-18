@@ -6,16 +6,15 @@ from flask import Flask
 from threading import Thread
 import openai
 import random
-import datetime
 from dotenv import load_dotenv
 load_dotenv()
 
-# --- Web Server to Keep Replit/Render Alive ---
+# --- Web Server to Keep Alive ---
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "NPC bot is alive!"
+    return "NPC MasterBot is alive!"
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
@@ -24,41 +23,44 @@ def keep_alive():
     t = Thread(target=run_web)
     t.start()
 
-# --- Fantasy Trivia & Lore Pool ---
+# --- Content Pools ---
 TRIVIA_AND_LORE = [
-    "💡 Did you know? Most taverns in Faerûn are built over ley lines, enhancing magical effects!",
-    "📜 Lore Drop: The infamous bard Elowen once silenced a tavern brawl with a single lute chord.",
-    "🧙‍♂️ Trivia: The term 'Dungeon Master' was first coined in 1975 with the original D&D release.",
-    "🧝‍♀️ Lore Fact: Elves consider tavern gossip an art form worthy of poetry.",
-    "🍺 Fun Fact: Gnomes in Waterdeep ferment ale with magical mushrooms for enhanced dreams.",
-    "📘 Lore Bit: The city of Baldur’s Gate banned teleportation after a rogue wizard kept stealing sausages.",
-    "🔮 Arcane Insight: Tiefling warlocks often see flashes of their patron’s realm when drinking mead.",
-    "⚔️ Battle Tale: The Half-Orc hero Ragor once won a duel by reciting poetry mid-swing.",
-    "🦴 Necromantic Rumor: Skeletons animated near graveyards dance slightly out of rhythm.",
-    "🔥 Hot Lore: A dragon named Emberbelch once opened a tavern just to meet adventurers for gossip."
+    "\ud83d\udca1 Did you know? Most taverns in Faer\u00fbn are built over ley lines, enhancing magical effects!",
+    "\ud83d\udcdc Lore Drop: The infamous bard Elowen once silenced a tavern brawl with a single lute chord.",
+    "\ud83e\uddd9\u200d\u2642\ufe0f Trivia: The term 'Dungeon Master' was first coined in 1975 with the original D&D release.",
+    "\ud83e\uddd5\u200d\u2640\ufe0f Lore Fact: Elves consider tavern gossip an art form worthy of poetry.",
+    "\ud83c\udf7a Fun Fact: Gnomes in Waterdeep ferment ale with magical mushrooms for enhanced dreams."
 ]
 
-# --- Facebook Token Refresh ---
-def refresh_facebook_token():
-    # Placeholder for future Facebook token refreshing
-    pass
-# --- Post to Facebook ---
-def post_to_facebook(npc, image_path=None):
-    refresh_facebook_token()  # <<< ADD THIS LINE FIRST!
-    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
-    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
+MINI_STORIES = [
+    "\ud83c\udf1f Story Hook: A bard offers a quest in exchange for a memory. Would you accept?",
+    "\u2694\ufe0f Adventure: An abandoned tavern houses a whispering ghost with ancient secrets.",
+    "\ud83e\uddd9\u200d\u2642\ufe0f Magical Mystery: Drinking ale in the Dragon's Breath Inn grants wild visions.",
+    "\ud83d\udc51 Royal Decree: A bounty is placed on a cursed relic hidden deep underground.",
+    "\ud83d\udc09 Dragon Sighting: A young copper dragon seen gambling with village children!"
+]
+
+POLL_QUESTIONS = [
+    "\ud83c\udf7a Favorite Tavern Drink: Mead \ud83c\udf6f or Ale \ud83c\udf7a?",
+    "\ud83e\uddd9\u200d\u2640\ufe0f Preferred Class: Wizard \ud83d\udc9a or Rogue \ud83d\udd2b?",
+    "\ud83c\udfdb\ufe0f Best Adventure Setting: Haunted Castle \ud83d\udc7b or Lost Jungle \ud83d\udc12?",
+    "\ud83d\udc09 Dream Companion: Dragon \ud83d\udc09 or Griffin \ud83e\udc85?",
+    "\u2694\ufe0f Ultimate Weapon: Enchanted Sword \u2694\ufe0f or Bow of Stars \ud83c\udf20?"
+]
+
+# --- Facebook Posting ---
+def post_to_facebook(message, image_path=None):
+    print("\ud83d\udd0d Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
+    print("\ud83d\udd0d Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
     if not page_id or not token:
-        print("⚠️ Facebook credentials missing. Skipping FB post.")
+        print("\u26a0\ufe0f Facebook credentials missing. Skipping FB post.")
         return
 
-    formatted_post = (
-        f"{npc}\n\n"
-        "#DnD #DungeonsAndDragons #TabletopRPG #FantasyArt #RPGCharacter "
-        "#Roleplay #TavernLife #CharacterArt #TTRPG #FantasyWorld #Adventurer"
-)
+    hashtags = "#DnD #TavernNPC #RPGCharacter #FantasyArt #DungeonsAndDragons #TabletopRPG #TavernLife #TTRPG"
+    formatted_post = f"{message}\n\n{hashtags}"
 
     if image_path:
         url = f"https://graph.facebook.com/{page_id}/photos"
@@ -71,11 +73,11 @@ def post_to_facebook(npc, image_path=None):
         response = requests.post(url, data=data)
 
     if response.status_code == 200:
-        print("✅ NPC posted to Facebook!")
+        print("\u2705 Posted to Facebook!")
     else:
-        print(f"❌ Facebook error: {response.status_code} - {response.text}")
+        print(f"\u274c Facebook error: {response.status_code} - {response.text}")
 
-# --- DALL·E Image Generation ---
+# --- Image Generation ---
 def generate_image(prompt, filename):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.images.generate(
@@ -90,7 +92,37 @@ def generate_image(prompt, filename):
         f.write(image_data)
     return filename
 
-# --- NPC Generation ---
+# --- Bot Jobs ---
+def job_npc():
+    print("\ud83d\udd52 Posting NPC...")
+    npc = generate_npc()
+    race, char_class = extract_race_and_class(npc)
+    prompt = f"A fantasy portrait of a {race} {char_class} sitting in a medieval tavern, painted in a semi-realistic style."
+    image_path = generate_image(prompt, "npc_image.png")
+    post_to_facebook(npc, image_path)
+
+def job_story():
+    print("\ud83d\udd52 Posting Story...")
+    story = random.choice(MINI_STORIES)
+    prompt = "A cozy medieval tavern with adventurers sharing tales by firelight, in semi-realistic fantasy art style."
+    image_path = generate_image(prompt, "story_image.png")
+    post_to_facebook(story, image_path)
+
+def job_poll():
+    print("\ud83d\udd52 Posting Poll...")
+    poll = random.choice(POLL_QUESTIONS)
+    prompt = "A fantasy tavern bulletin board covered with parchment polls and posters, semi-realistic fantasy art."
+    image_path = generate_image(prompt, "poll_image.png")
+    post_to_facebook(poll, image_path)
+
+def job_engagement():
+    print("\ud83d\udd52 Posting Engagement Question...")
+    question = generate_engagement_question()
+    prompt = "An adventurer pondering their destiny inside a bustling medieval tavern, warm lighting, semi-realistic style."
+    image_path = generate_image(prompt, "engagement_image.png")
+    post_to_facebook(question, image_path)
+
+# --- NPC & Helpers ---
 def generate_npc():
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
@@ -103,8 +135,8 @@ def generate_npc():
     )
     return response.choices[0].message.content.strip()
 
-def extract_race_and_class(npc):
-    lines = npc.split('\n')
+def extract_race_and_class(npc_text):
+    lines = npc_text.split('\n')
     for line in lines:
         if line.lower().startswith("race & class"):
             parts = line.split(":", 1)
@@ -114,46 +146,29 @@ def extract_race_and_class(npc):
                     return race_class.split(" ", 1)
     return "Human", "Fighter"
 
-# --- Scheduled Job ---
-def job():
-    print("🕒 Running bot job...")
-    npc = generate_npc()
-    race, char_class = extract_race_and_class(npc)
+def generate_engagement_question():
+    questions = [
+        "What would your dream tavern be named?",
+        "Which fantasy creature would you trust to guard your treasure?",
+        "If you could brew a magical potion, what would it do?",
+        "What's your favorite D&D alignment?",
+        "Describe your ideal adventuring party in 3 words!"
+    ]
+    return random.choice(questions)
 
-    prompt = (
-        f"Ultra-detailed fantasy portrait of a {race} {char_class} "
-        "in a lively medieval tavern setting. "
-        "Background filled with wooden beams, glowing lanterns, and bustling adventurers. "
-        f"The {race} wears realistic {char_class}-themed armor and gear. "
-        "Painted in semi-realistic style, intricate facial expressions, soft light, and vibrant colors. "
-        "Award-winning digital art, 8K resolution, trending on ArtStation."
-    )
-
-    image_path = generate_image(prompt, "npc_image.png")
-    post_to_facebook(npc, image_path)
-
-# --- Token Refresh Reminder ---
-def notify_token_refresh():
-    today = datetime.date.today()
-    refresh_reminder = today + datetime.timedelta(days=5)  # Countdown after 55 days
-    print(f"🔔 Reminder: Your Facebook token should be refreshed soon! Suggested refresh date: {refresh_reminder}")
-
-# --- Scheduler Loop ---
+# --- Scheduler ---
 def run_scheduler():
-    print("📅 Bot scheduler is running...")
-    schedule.every().monday.at("10:00").do(job)
-    schedule.every().tuesday.at("10:00").do(job)
-    schedule.every().wednesday.at("10:00").do(job)
-    schedule.every().thursday.at("10:00").do(job)
-    schedule.every().friday.at("10:00").do(job)
-    schedule.every().saturday.at("10:00").do(job)
-    schedule.every(55).days.do(notify_token_refresh)  # Add token refresh reminder
+    print("\ud83d\udcc5 Bot scheduler is running...")
+    schedule.every().monday.at("10:00").do(job_npc)
+    schedule.every().wednesday.at("12:00").do(job_engagement)
+    schedule.every().friday.at("14:00").do(job_story)
+    schedule.every().sunday.at("17:00").do(job_poll)
 
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# --- Main Start ---
+# --- Main ---
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
