@@ -96,7 +96,7 @@ def generate_image(prompt, filename):
     return filename
 
 # Helper: Post to Facebook
-ddef post_to_facebook(npc, image_path=None):
+def post_to_facebook(npc, image_path=None):
     refresh_facebook_token()
 
     print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
