@@ -54,7 +54,11 @@ def post_to_facebook(npc, image_path=None):
         print("⚠️ Facebook credentials missing. Skipping FB post.")
         return
 
-    formatted_post = f"{npc}\n\n#DnD #NPC #FantasyRPG"
+    formatted_post = (
+        f"{npc}\n\n"
+        "#DnD #DungeonsAndDragons #TabletopRPG #FantasyArt #RPGCharacter "
+        "#Roleplay #TavernLife #CharacterArt #TTRPG #FantasyWorld #Adventurer"
+)
 
     if image_path:
         url = f"https://graph.facebook.com/{page_id}/photos"
