@@ -35,7 +35,7 @@ def post_now():
     print("🖱️ POST NOW button clicked!")
     job()  # <-- DIRECTLY call job()
     return redirect('/')
-)
+
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
