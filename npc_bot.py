@@ -1,3 +1,4 @@
+# Trigger manual post to Facebook).
 import os
 import time
 import schedule
