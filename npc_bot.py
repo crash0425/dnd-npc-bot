@@ -38,6 +38,10 @@ TRIVIA_AND_LORE = [
     "🔥 Hot Lore: A dragon named Emberbelch once opened a tavern just to meet adventurers for gossip."
 ]
 
+# --- Facebook Token Refresh ---
+def refresh_facebook_token():
+    # Placeholder for future Facebook token refreshing
+    pass
 # --- Post to Facebook ---
 def post_to_facebook(npc, image_path=None):
     refresh_facebook_token()  # <<< ADD THIS LINE FIRST!
