@@ -21,11 +21,14 @@ def home():
 @app.route('/post-now', methods=['GET', 'POST'])
 def manual_post():
     if request.method == 'POST':
-        job()
-        return render_template_string("""
-            <h1>✅ Post Triggered!</h1>
-            <a href="/post-now">🔙 Back</a>
-        """)
+        try:
+            Thread(target=job).start()  # <<< RUN JOB IN A THREAD
+            return render_template_string("""
+                <h1>✅ Post Triggered!</h1>
+                <a href="/post-now">🔙 Back</a>
+            """)
+        except Exception as e:
+            return f"<h1>❌ Error: {str(e)}</h1>"
     return render_template_string("""
         <h1>🛡️ D&D NPC Bot Manual Post</h1>
         <form method="post">
