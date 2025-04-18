@@ -28,12 +28,11 @@ def home():
 
 @app.route('/post-now', methods=['POST'])
 def post_now():
-    # Run your job
-    from threading import Thread
-    Thread(target=job).start()
-    return '''
-        <h1>✅ Your NPC has been posted!</h1>
-        <a href="/">🔙 Back to Home</a>
+    try:
+        Thread(target=job).start()
+        return "✅ Manual NPC post triggered!"
+    except Exception as e:
+        return f"❌ Error triggering post: {str(e)}", 500
     '''
 
 def run_web():
