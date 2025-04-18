@@ -107,7 +107,7 @@ def generate_image(npc_text, filename):
         f.write(image_data)
     return filename
 
-def post_to_facebook(npc, image_path=None):
+ddef post_to_facebook(npc, image_path=None):
     refresh_facebook_token()
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
@@ -125,9 +125,10 @@ def post_to_facebook(npc, image_path=None):
     try:
         if image_path:
             url = f"https://graph.facebook.com/{page_id}/photos"
-            files = {"source": open(image_path, "rb")}
-            data = {"caption": formatted_post.strip(), "access_token": token}
-            response = requests.post(url, files=files, data=data)
+            with open(image_path, "rb") as img:
+                files = {"source": img}
+                data = {"caption": formatted_post.strip(), "access_token": token}
+                response = requests.post(url, files=files, data=data)
         else:
             url = f"https://graph.facebook.com/{page_id}/feed"
             data = {"message": formatted_post.strip(), "access_token": token}
