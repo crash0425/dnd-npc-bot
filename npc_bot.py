@@ -137,13 +137,10 @@ def post_to_facebook(npc, image_path=None):
         print(f"📬 Facebook POST response: {response.status_code}")
         print(f"📬 Facebook POST response body: {response.text}")
 
-        if response.status_code == 200:
-            print("✅ NPC posted to Facebook!")
-        else:
-            print("❌ Facebook posting failed!")
-
-    except Exception as e:
-        print(f"🚨 Exception during Facebook post: {str(e)}")
+       if response.status_code == 200:
+    print("✅ NPC posted to Facebook!")
+else:
+    print(f"❌ Facebook error: {response.status_code} - {response.text}
 
 
 # --- Main Job ---
