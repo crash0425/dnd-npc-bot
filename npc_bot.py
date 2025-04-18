@@ -96,8 +96,11 @@ def generate_image(prompt, filename):
     return filename
 
 # Helper: Post to Facebook
-def post_to_facebook(npc, image_path=None):
+ddef post_to_facebook(npc, image_path=None):
     refresh_facebook_token()
+
+    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
+    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
 
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
@@ -116,20 +119,22 @@ def post_to_facebook(npc, image_path=None):
         if image_path:
             url = f"https://graph.facebook.com/{page_id}/photos"
             files = {"source": open(image_path, "rb")}
-            data = {"caption": formatted_post, "access_token": token}
+            data = {"caption": formatted_post.strip(), "access_token": token}
             response = requests.post(url, files=files, data=data)
         else:
             url = f"https://graph.facebook.com/{page_id}/feed"
-            data = {"message": formatted_post, "access_token": token}
+            data = {"message": formatted_post.strip(), "access_token": token}
             response = requests.post(url, data=data)
 
         if response.status_code == 200:
             print("✅ NPC posted to Facebook!")
         else:
             print(f"❌ Facebook error: {response.status_code} - {response.text}")
+            print(f"📜 Full Facebook Response JSON: {response.json()}")
 
     except Exception as e:
-        print(f"🚨 An error occurred while posting to Facebook: {e}")
+        print(f"🚨 An unexpected error occurred while posting to Facebook: {e}")
+
 
 
 
