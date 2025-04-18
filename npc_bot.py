@@ -39,8 +39,10 @@ TRIVIA_AND_LORE = [
 ]
 
 # --- Post to Facebook ---
-def post_to_facebook(npc, image_path=None):
-    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
+ef post_to_facebook(npc, image_path=None):
+    refresh_facebook_token()  # <<< ADD THIS LINE FIRST!
+
+    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID
     print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
