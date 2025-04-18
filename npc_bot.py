@@ -111,7 +111,7 @@ def post_to_facebook(npc, image_path=None):
         "#Roleplay #TavernLife #CharacterArt #TTRPG #FantasyWorld #Adventurer"
     )
 
-    try:
+try:
     if image_path:
         url = f"https://graph.facebook.com/{page_id}/photos"
         files = {"source": open(image_path, "rb")}
@@ -129,6 +129,7 @@ def post_to_facebook(npc, image_path=None):
 
 except Exception as e:
     print(f"🚨 An error occurred while posting to Facebook: {e}")
+
 
 
 
