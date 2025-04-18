@@ -108,8 +108,7 @@ def generate_image(npc_text, filename):
     return filename
 
 def post_to_facebook(npc, image_path=None):
-    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
-    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
+    refresh_facebook_token()
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
@@ -123,23 +122,27 @@ def post_to_facebook(npc, image_path=None):
         "#Roleplay #TavernLife #CharacterArt #TTRPG #FantasyWorld #Adventurer"
     )
 
-    if image_path:
-        url = f"https://graph.facebook.com/{page_id}/photos"
-        files = {"source": open(image_path, "rb")}
-        data = {"caption": formatted_post.strip(), "access_token": token}
-        response = requests.post(url, files=files, data=data)
-    else:
-        url = f"https://graph.facebook.com/{page_id}/feed"
-        data = {"message": formatted_post.strip(), "access_token": token}
-        response = requests.post(url, data=data)
+    try:
+        if image_path:
+            url = f"https://graph.facebook.com/{page_id}/photos"
+            files = {"source": open(image_path, "rb")}
+            data = {"caption": formatted_post.strip(), "access_token": token}
+            response = requests.post(url, files=files, data=data)
+        else:
+            url = f"https://graph.facebook.com/{page_id}/feed"
+            data = {"message": formatted_post.strip(), "access_token": token}
+            response = requests.post(url, data=data)
 
-    print(f"📬 Facebook POST response: {response.status_code}")
-    print(f"📬 Facebook POST response body: {response.text}")
+        print(f"📬 Facebook POST response: {response.status_code}")
+        print(f"📬 Facebook POST response body: {response.text}")
 
-    if response.status_code == 200:
-        print("✅ NPC posted to Facebook!")
-    else:
-        print(f"❌ Facebook error: {response.status_code} - {response.text}")
+        if response.status_code == 200:
+            print("✅ NPC posted to Facebook!")
+        else:
+            print("❌ Facebook posting failed!")
+
+    except Exception as e:
+        print(f"🚨 Exception during Facebook post: {str(e)}")
 
 
 # --- Main Job ---
