@@ -1,48 +1,37 @@
-# Trigger manual post to Facebook).
 import os
 import time
 import schedule
 import requests
+from flask import Flask, request, render_template_string
+from threading import Thread
 import openai
 import random
 import datetime
-from flask import Flask, render_template_string
-from threading import Thread
 from dotenv import load_dotenv
 
 load_dotenv()
 
-# --- Flask App (for Uptime Robot / Preview Page) ---
+# --- Web Server to Keep Replit/Render Alive ---
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "🛡️ NPC Bot is alive!"
+    return "NPC bot is alive!"
 
-@app.route('/preview')
-def preview():
-    next_post_time = get_next_post_time()
+@app.route('/post-now', methods=['GET', 'POST'])
+def manual_post():
+    if request.method == 'POST':
+        job()
+        return render_template_string("""
+            <h1>✅ Post Triggered!</h1>
+            <a href="/post-now">🔙 Back</a>
+        """)
     return render_template_string("""
-    <html>
-        <head>
-            <title>🧙 NPC Bot Preview</title>
-            <style>
-                body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f5f5f5; }
-                h1 { color: #333; }
-                img { max-width: 400px; border-radius: 12px; margin-top: 20px; }
-                .countdown { margin-top: 20px; font-size: 1.2em; color: #555; }
-                footer { margin-top: 40px; font-size: 0.8em; color: #999; }
-            </style>
-        </head>
-        <body>
-            <h1>🛡️ Fantasy NPC Bot</h1>
-            <p>Next post scheduled at:</p>
-            <div class="countdown">{{ next_post_time }}</div>
-            <img src="https://placehold.co/400x400?text=Preview+NPC" alt="Preview NPC">
-            <footer>Maintained by Masterbot 🛡️</footer>
-        </body>
-    </html>
-    """, next_post_time=next_post_time)
+        <h1>🛡️ D&D NPC Bot Manual Post</h1>
+        <form method="post">
+            <button type="submit" style="padding: 14px 28px; font-size: 18px; background-color: #4CAF50; color: white; border: none; border-radius: 8px;">📜 Generate New NPC Post</button>
+        </form>
+    """)
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
@@ -51,81 +40,29 @@ def keep_alive():
     t = Thread(target=run_web)
     t.start()
 
-def get_next_post_time():
-    now = datetime.datetime.now()
-    today_monday = now.weekday() == 0
-    today_thursday = now.weekday() == 3
-
-    next_post = None
-    if today_monday and now.hour < 10:
-        next_post = now.replace(hour=10, minute=0, second=0, microsecond=0)
-    elif today_thursday and now.hour < 10:
-        next_post = now.replace(hour=10, minute=0, second=0, microsecond=0)
-    else:
-        # Set next Monday or Thursday
-        days_ahead = 0
-        if now.weekday() < 3:
-            days_ahead = 3 - now.weekday()
-        else:
-            days_ahead = (7 - now.weekday() + 0)  # Next Monday
-        next_post = now + datetime.timedelta(days=days_ahead)
-        next_post = next_post.replace(hour=10, minute=0, second=0, microsecond=0)
-
-    return next_post.strftime("%A, %B %d at %I:%M %p")
-
-# --- Fantasy Trivia & Lore ---
+# --- Fantasy Trivia & Lore Pool ---
 TRIVIA_AND_LORE = [
     "💡 Did you know? Most taverns in Faerûn are built over ley lines, enhancing magical effects!",
     "📜 Lore Drop: The infamous bard Elowen once silenced a tavern brawl with a single lute chord.",
-    "🧙‍♂️ Trivia: 'Dungeon Master' was first coined in 1975!",
-    "🍺 Fun Fact: Gnomes ferment ale with magical mushrooms for enhanced dreams.",
-    "🔮 Arcane Insight: Tieflings often glimpse their patron's realm while drinking.",
+    "🧙‍♂️ Trivia: The term 'Dungeon Master' was first coined in 1975 with the original D&D release.",
+    "🧝‍♀️ Lore Fact: Elves consider tavern gossip an art form worthy of poetry.",
+    "🍺 Fun Fact: Gnomes in Waterdeep ferment ale with magical mushrooms for enhanced dreams.",
+    "📘 Lore Bit: The city of Baldur’s Gate banned teleportation after a rogue wizard kept stealing sausages.",
+    "🔮 Arcane Insight: Tiefling warlocks often see flashes of their patron’s realm when drinking mead.",
+    "⚔️ Battle Tale: The Half-Orc hero Ragor once won a duel by reciting poetry mid-swing.",
+    "🦴 Necromantic Rumor: Skeletons animated near graveyards dance slightly out of rhythm.",
+    "🔥 Hot Lore: A dragon named Emberbelch once opened a tavern just to meet adventurers for gossip."
 ]
 
-# --- NPC and Image Generation ---
-def generate_npc():
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
-        ],
-        temperature=0.9
-    )
-    return response.choices[0].message.content.strip()
-
-def extract_race_and_class(npc):
-    lines = npc.split('\n')
-    for line in lines:
-        if line.lower().startswith("race & class"):
-            parts = line.split(":", 1)
-            if len(parts) > 1:
-                race_class = parts[1].strip()
-                if " " in race_class:
-                    return race_class.split(" ", 1)
-    return "Human", "Fighter"
-
-def generate_image(prompt, filename):
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        n=1,
-        size="1024x1024"
-    )
-    image_url = response.data[0].url
-    image_data = requests.get(image_url).content
-    with open(filename, "wb") as f:
-        f.write(image_data)
-    return filename
-
-# --- Facebook Posting ---
+# --- Post to Facebook ---
 def post_to_facebook(npc, image_path=None):
+    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
+    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
+
     if not page_id or not token:
-        print("⚠️ Facebook credentials missing.")
+        print("⚠️ Facebook credentials missing. Skipping FB post.")
         return
 
     formatted_post = (
@@ -149,19 +86,60 @@ def post_to_facebook(npc, image_path=None):
     else:
         print(f"❌ Facebook error: {response.status_code} - {response.text}")
 
+# --- DALL·E Image Generation ---
+def generate_image(prompt, filename):
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.images.generate(
+        model="dall-e-3",
+        prompt=prompt,
+        n=1,
+        size="1024x1024"
+    )
+    image_url = response.data[0].url
+    image_data = requests.get(image_url).content
+    with open(filename, "wb") as f:
+        f.write(image_data)
+    return filename
+
+# --- Generate NPC Text ---
+def generate_npc():
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
+            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with the following format:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
+        ],
+        temperature=0.9
+    )
+    return response.choices[0].message.content.strip()
+
+# --- Extract Race & Class for Better Images ---
+def extract_race_and_class(npc):
+    lines = npc.split('\n')
+    for line in lines:
+        if line.lower().startswith("race & class"):
+            parts = line.split(":", 1)
+            if len(parts) > 1:
+                race_class = parts[1].strip()
+                if " " in race_class:
+                    return race_class.split(" ", 1)
+    return "Human", "Fighter"
+
 # --- Scheduled Job ---
 def job():
     print("🕒 Running bot job...")
     npc = generate_npc()
     race, char_class = extract_race_and_class(npc)
     prompt = (
-        f"A fantasy portrait of a {race} {char_class} sitting in a medieval tavern. "
-        f"Depicted in a semi-realistic, digital painting style with atmospheric candlelight."
+        f"A detailed fantasy portrait of a {race} {char_class} in a lively medieval tavern. "
+        "The character should reflect their class through clothing and gear. "
+        "Background should include wooden beams, candlelight, and adventurers chatting."
     )
     image_path = generate_image(prompt, "npc_image.png")
     post_to_facebook(npc, image_path)
 
-# --- Scheduler Loop ---
+# --- Run Scheduler ---
 def run_scheduler():
     print("📅 Bot scheduler is running...")
     schedule.every().monday.at("10:00").do(job)
@@ -171,7 +149,7 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(30)
 
-# --- Start Bot ---
+# --- Main ---
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
