@@ -33,7 +33,7 @@ def home():
 @app.route('/post-now', methods=['POST'])
 def post_now():
     print("🖱️ POST NOW button clicked!")
-    job()  # <-- DIRECTLY call job()
+    job()
     return redirect('/')
 
 
