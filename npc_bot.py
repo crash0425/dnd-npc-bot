@@ -1,39 +1,39 @@
+# npc_bot.py
+
 import os
 import time
-import schedule
 import random
-import datetime
+import schedule
 import requests
-from flask import Flask, request
-from threading import Thread
 from dotenv import load_dotenv
+from flask import Flask, render_template_string, request, redirect, url_for
+from threading import Thread
 import openai
 
-# --- Load Environment Variables ---
+# Load .env secrets
 load_dotenv()
 
-# --- Web Server to Keep Replit/Render Alive ---
-from flask import Flask, request, redirect, url_for
-
-app = Flask('')
+# Setup Flask web server
+app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return '''
-        <h1>🛡️ D&D NPC Bot is Alive!</h1>
-        <form action="/post-now" method="POST">
-            <button type="submit" style="font-size:20px;padding:10px 20px;">🚀 Post New NPC Now</button>
+    return render_template_string('''
+    <html>
+    <head><title>NPC Bot</title></head>
+    <body style="text-align:center; padding-top:50px;">
+        <h1>🤖 NPC Bot Control Panel</h1>
+        <form action="/post-now" method="post">
+            <button style="font-size:24px; padding:10px 30px;" type="submit">Post NPC Now 🚀</button>
         </form>
-    '''
+    </body>
+    </html>
+    ''')
 
-@app.route('/post-now', methods=['POST'])
+@app.route('/post-now', methods=["POST"])
 def post_now():
-    try:
-        Thread(target=job).start()
-        return "✅ Manual NPC post triggered!"
-    except Exception as e:
-        return f"❌ Error triggering post: {str(e)}", 500
-    '''
+    Thread(target=job).start()
+    return redirect(url_for('home'))
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
@@ -42,36 +42,33 @@ def keep_alive():
     t = Thread(target=run_web)
     t.start()
 
-# --- Fantasy Trivia & Lore Pool ---
+# Trivia & Lore pool
 TRIVIA_AND_LORE = [
     "💡 Did you know? Most taverns in Faerûn are built over ley lines, enhancing magical effects!",
     "📜 Lore Drop: The infamous bard Elowen once silenced a tavern brawl with a single lute chord.",
-    "🧙‍♂️ Trivia: The term 'Dungeon Master' was first coined in 1975 with the original D&D release.",
-    "🍺 Fun Fact: Gnomes in Waterdeep ferment ale with magical mushrooms for enhanced dreams.",
-    "🔥 Hot Lore: A dragon named Emberbelch once opened a tavern just to meet adventurers for gossip.",
+    "🧙‍♂️ Trivia: The term 'Dungeon Master' was first coined in 1975.",
+    "🧝‍♀️ Lore Fact: Elves consider tavern gossip an art form worthy of poetry.",
+    "🍺 Gnome Fun Fact: Waterdeep gnomes ferment ale with magical mushrooms!",
 ]
 
-# --- Helper Functions ---
+# Helper: Refresh Facebook token (stub)
 def refresh_facebook_token():
-    # Placeholder for future Facebook token refreshing
     pass
 
+# Helper: Generate an NPC
 def generate_npc():
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": (
-                "Generate a highly detailed, colorful D&D NPC using this format:\n"
-                "Name: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ...\n"
-                "Make quirks vivid to inspire illustration prompts."
-            )}
+            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with the format:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
         ],
         temperature=0.9
     )
     return response.choices[0].message.content.strip()
 
+# Helper: Extract race and class
 def extract_race_and_class(npc_text):
     lines = npc_text.split('\n')
     for line in lines:
@@ -83,17 +80,9 @@ def extract_race_and_class(npc_text):
                     return race_class.split(" ", 1)
     return "Human", "Fighter"
 
-def generate_image(npc_text, filename):
+# Helper: Generate DALL·E image
+def generate_image(prompt, filename):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    race, char_class = extract_race_and_class(npc_text)
-    quirks_line = next((line for line in npc_text.split('\n') if line.lower().startswith("quirks")), None)
-    quirks = quirks_line.split(":", 1)[1].strip() if quirks_line else ""
-    prompt = (
-        f"A fantasy portrait of a {race} {char_class} in a lively medieval tavern. "
-        f"Character traits: {quirks}. Semi-realistic digital art style, warm tavern lighting, detailed background."
-    )
-    prompt = prompt[:950]  # Limit to avoid exceeding API limits
-
     response = client.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -106,10 +95,9 @@ def generate_image(npc_text, filename):
         f.write(image_data)
     return filename
 
+# Helper: Post to Facebook
 def post_to_facebook(npc, image_path=None):
     refresh_facebook_token()
-    print("🔍 Debug: FB_PAGE_ID:", os.getenv("FB_PAGE_ID"))
-    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present:", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
@@ -127,41 +115,43 @@ def post_to_facebook(npc, image_path=None):
         if image_path:
             url = f"https://graph.facebook.com/{page_id}/photos"
             files = {"source": open(image_path, "rb")}
-            data = {"caption": formatted_post.strip(), "access_token": token}
+            data = {"caption": formatted_post, "access_token": token}
             response = requests.post(url, files=files, data=data)
         else:
             url = f"https://graph.facebook.com/{page_id}/feed"
-            data = {"message": formatted_post.strip(), "access_token": token}
+            data = {"message": formatted_post, "access_token": token}
             response = requests.post(url, data=data)
 
         if response.status_code == 200:
             print("✅ NPC posted to Facebook!")
         else:
             print(f"❌ Facebook error: {response.status_code} - {response.text}")
-
     except Exception as e:
-        print(f"❌ An error occurred while posting to Facebook: {e}")
+        print(f"🔥 Error posting to Facebook: {e}")
 
-
-
-# --- Main Job ---
+# Main Bot Job
 def job():
-    print("🕒 Running bot job...")
+    print("🕒 Running scheduled bot job...")
     npc = generate_npc()
-    image_path = generate_image(npc, "npc_image.png")
+    race, char_class = extract_race_and_class(npc)
+    prompt = (
+        f"A fantasy portrait of a {race} {char_class} sitting in a lively medieval tavern. "
+        "Painted in a semi-realistic digital art style. Include visible gear related to their class."
+    )
+    image_path = generate_image(prompt, "npc_image.png")
     post_to_facebook(npc, image_path)
 
-# --- Scheduler ---
+# Scheduler loop
 def run_scheduler():
     print("📅 Bot scheduler is running...")
-    schedule.every().monday.at("11:00").do(job)      # Peak engagement
-    schedule.every().thursday.at("18:00").do(job)    # Evening gaming crowd
+    schedule.every().monday.at("10:00").do(job)
+    schedule.every().thursday.at("10:00").do(job)
 
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# --- Main Run ---
+# Start everything
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
