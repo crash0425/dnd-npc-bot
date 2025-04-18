@@ -121,13 +121,17 @@ def post_to_facebook(npc, image_path=None):
             url = f"https://graph.facebook.com/{page_id}/feed"
             data = {"message": formatted_post, "access_token": token}
             response = requests.post(url, data=data)
-
+try:
     if response.status_code == 200:
         print("✅ NPC posted to Facebook!")
     else:
         print(f"❌ Facebook error: {response.status_code} - {response.text}")
 
-         print("📤 Full Facebook Response:", response.status_code, response.text)
+    print("📤 Full Facebook Response:", response.status_code, response.text)
+
+except Exception as e:
+    print(f"🚨 An error occurred while posting to Facebook: {e}")
+
 
 
 
