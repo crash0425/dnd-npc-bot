@@ -107,7 +107,7 @@ def generate_image(npc_text, filename):
         f.write(image_data)
     return filename
 
-ddef post_to_facebook(npc, image_path=None):
+def post_to_facebook(npc, image_path=None):
     refresh_facebook_token()
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
