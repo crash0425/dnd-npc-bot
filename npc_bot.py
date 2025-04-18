@@ -122,13 +122,13 @@ def post_to_facebook(npc, image_path=None):
             data = {"message": formatted_post, "access_token": token}
             response = requests.post(url, data=data)
 
-            if response.status_code == 200:
+    if response.status_code == 200:
         print("✅ NPC posted to Facebook!")
     else:
         print(f"❌ Facebook error: {response.status_code} - {response.text}")
 
-    # New: Always print response even if no error
-    print("📤 Full Facebook Response:", response.status_code, response.text)
+         print("📤 Full Facebook Response:", response.status_code, response.text)
+
 
 
 # Main Bot Job
