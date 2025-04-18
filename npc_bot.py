@@ -30,10 +30,12 @@ def home():
     </html>
     ''')
 
-@app.route('/post-now', methods=["POST"])
+@app.route('/post-now', methods=['POST'])
 def post_now():
-    Thread(target=job).start()
-    return redirect(url_for('home'))
+    print("🖱️ POST NOW button clicked!")
+    job()  # <-- DIRECTLY call job()
+    return redirect('/')
+)
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
