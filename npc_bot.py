@@ -12,18 +12,29 @@ import openai
 # --- Load Environment Variables ---
 load_dotenv()
 
-# --- Flask App for Keep Alive + Manual Post ---
+# --- Web Server to Keep Replit/Render Alive ---
+from flask import Flask, request, redirect, url_for
+
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "🛡️ NPC Bot is running!"
+    return '''
+        <h1>🛡️ D&D NPC Bot is Alive!</h1>
+        <form action="/post-now" method="POST">
+            <button type="submit" style="font-size:20px;padding:10px 20px;">🚀 Post New NPC Now</button>
+        </form>
+    '''
 
 @app.route('/post-now', methods=['POST'])
-def manual_post():
-    t = Thread(target=job)
-    t.start()
-    return "🛡️ Manual post triggered successfully!"
+def post_now():
+    # Run your job
+    from threading import Thread
+    Thread(target=job).start()
+    return '''
+        <h1>✅ Your NPC has been posted!</h1>
+        <a href="/">🔙 Back to Home</a>
+    '''
 
 def run_web():
     app.run(host='0.0.0.0', port=8080)
