@@ -170,6 +170,5 @@ def run_scheduler():
 
 # --- Main ---
 if __name__ == "__main__":
-   if __name__ == "__main__":
     keep_alive()
     job()
