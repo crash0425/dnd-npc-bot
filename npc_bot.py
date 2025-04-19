@@ -1,184 +1,179 @@
+# npc_bot.py
+
 import os
 import time
+import random
 import schedule
 import requests
+import datetime
 from flask import Flask, request, redirect
 from threading import Thread
 import openai
-import random
-import datetime
 import gspread
 from dotenv import load_dotenv
 
+# Load .env
 load_dotenv()
 
-# --- Setup Flask App to Keep Alive ---
+# Setup Google Sheets client
+gc = gspread.service_account_from_dict({
+    "type": "service_account",
+    "client_email": os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
+    "private_key": os.getenv("GOOGLE_PRIVATE_KEY").replace('\\n', '\n'),
+    "token_uri": "https://oauth2.googleapis.com/token"
+})
+
+# Connect to Google Sheet
+SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
+worksheet = gc.open_by_key(SHEET_ID).sheet1
+
+# Setup Flask Web Server
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "MasterBot Ultra Pro is alive!"
+    return '''
+    <h1>MasterBot Pro Control Panel 🚀</h1>
+    <form action="/post-now" method="post">
+        <button type="submit">📬 Post Now</button>
+    </form>
+    '''
 
 @app.route('/post-now', methods=['POST'])
-def manual_post():
+def post_now():
     Thread(target=job).start()
-    return redirect("/")
-
-def run_web():
-    app.run(host='0.0.0.0', port=8080)
+    return redirect('/')
 
 def keep_alive():
-    t = Thread(target=run_web)
+    t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
     t.start()
 
-# --- Setup Facebook ---
-FB_PAGE_ID = os.getenv("FB_PAGE_ID")
-FB_PAGE_ACCESS_TOKEN = os.getenv("FB_PAGE_ACCESS_TOKEN")
-
-# --- Setup Google Sheets ---
-gc = gspread.service_account(filename="service_account.json")
-sh = gc.open_by_key(os.getenv("SPREADSHEET_ID"))
-worksheet = sh.sheet1
-
-# --- Trivia & Lore ---
+# Fantasy Trivia
 TRIVIA_AND_LORE = [
-    "💡 Did you know? Most taverns in Faerûn are built over ley lines, enhancing magical effects!",
-    "📜 Lore Drop: The infamous bard Elowen once silenced a tavern brawl with a single lute chord.",
-    "🧙‍♂️ Trivia: The term 'Dungeon Master' was first coined in 1975 with the original D&D release.",
-    "🧝‍♀️ Lore Fact: Elves consider tavern gossip an art form worthy of poetry.",
-    "🍺 Fun Fact: Gnomes in Waterdeep ferment ale with magical mushrooms for enhanced dreams.",
-    "📘 Lore Bit: The city of Baldur’s Gate banned teleportation after a rogue wizard kept stealing sausages.",
-    "🔮 Arcane Insight: Tiefling warlocks often see flashes of their patron’s realm when drinking mead.",
-    "⚔️ Battle Tale: The Half-Orc hero Ragor once won a duel by reciting poetry mid-swing.",
-    "🦴 Necromantic Rumor: Skeletons animated near graveyards dance slightly out of rhythm.",
-    "🔥 Hot Lore: A dragon named Emberbelch once opened a tavern just to meet adventurers for gossip."
+    "💡 Did you know? Most taverns are built over ley lines!",
+    "📜 Lore Drop: Elowen silenced a tavern brawl with one lute chord.",
+    "🧙‍♂️ Trivia: 'Dungeon Master' was coined in 1975!",
+    "🍺 Fun Fact: Gnomes brew ale with magical mushrooms.",
+    "⚔️ Battle Tale: Half-Orc hero Ragor won duels by reciting poetry."
 ]
 
-# --- Utilities ---
+# --- NPC + Engagement Generators ---
+
 def generate_npc():
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
+            {"role": "system", "content": "You are a creative D&D NPC generator."},
+            {"role": "user", "content": "Create a D&D NPC:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
+        ],
+        temperature=0.85
+    )
+    return response.choices[0].message.content.strip()
+
+def generate_engagement_question():
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a creative fantasy community manager."},
+            {"role": "user", "content": "Write a fun question to spark comments among D&D players. Make it about taverns, adventurers, or fantasy NPCs."}
         ],
         temperature=0.9
     )
     return response.choices[0].message.content.strip()
 
-def extract_race_and_class(npc_text):
-    lines = npc_text.split('\n')
-    for line in lines:
-        if line.lower().startswith("race & class"):
-            parts = line.split(":", 1)
-            if len(parts) > 1:
-                race_class = parts[1].strip()
-                if " " in race_class:
-                    return race_class.split(" ", 1)
-    return "Human", "Adventurer"
+# --- Facebook Posting Functions ---
 
-def generate_prompt(npc):
-    race, char_class = extract_race_and_class(npc)
-    return (
-        f"A detailed fantasy portrait of a {race} {char_class} "
-        f"in a medieval tavern, lit by candlelight, full of character and mystery. "
-        f"Painted in a semi-realistic digital art style, high detail."
-    )
+def post_to_facebook(npc_text, image_path=None):
+    print("🕵️ FB Debug: FB_PAGE_ID =", os.getenv("FB_PAGE_ID"))
+    print("🕵️ FB Debug: FB_PAGE_ACCESS_TOKEN present =", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
+    page_id = os.getenv("FB_PAGE_ID")
+    token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
-def generate_image(prompt, filename):
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        n=1,
-        size="1024x1024"
-    )
-    image_url = response.data[0].url
-    image_data = requests.get(image_url).content
-    with open(filename, "wb") as f:
-        f.write(image_data)
-    return filename
+    if not page_id or not token:
+        print("⚠️ Missing Facebook credentials. Skipping post.")
+        return
 
-def generate_engagement_comment(npc):
-    return random.choice(TRIVIA_AND_LORE)
+    formatted_post = f"{npc_text}\n\n#DND #FantasyNPC #RPG #DungeonsAndDragons #FantasyWorld #Roleplay #CharacterCreation"
 
-def post_to_facebook(npc, image_path):
     try:
-        print("🖼 Posting image to Facebook...")
-
-        url = f"https://graph.facebook.com/{FB_PAGE_ID}/photos"
-        files = {"source": open(image_path, "rb")}
-        data = {
-            "caption": f"{npc}\n\n#DnD #TavernLife #FantasyArt #RPGCharacter #AdventureAwaits",
-            "access_token": FB_PAGE_ACCESS_TOKEN
-        }
-        response = requests.post(url, files=files, data=data)
-
-        print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
-
-        if response.status_code == 200:
-            post_id = response.json().get("post_id") or response.json().get("id")
-            print(f"✅ NPC posted successfully! Post ID: {post_id}")
-
-            # Step 1: Post a comment
-            comment_message = generate_engagement_comment(npc)
-            comment_on_post(post_id, comment_message)
-
-            # Step 2: Log to spreadsheet
-            save_to_spreadsheet(post_id, npc, comment_message)
-
+        if image_path:
+            print("📸 Posting image to Facebook...")
+            url = f"https://graph.facebook.com/{page_id}/photos"
+            files = {"source": open(image_path, "rb")}
+            data = {"caption": formatted_post.strip(), "access_token": token}
+            response = requests.post(url, files=files, data=data)
         else:
-            print(f"❌ Failed to post to Facebook.")
+            print("📝 Posting text post to Facebook...")
+            url = f"https://graph.facebook.com/{page_id}/feed"
+            data = {"message": formatted_post.strip(), "access_token": token}
+            response = requests.post(url, data=data)
+
+        print("🔎 Facebook API Response:", response.status_code, "-", response.text)
+        if response.status_code == 200:
+            print("✅ NPC posted to Facebook successfully!")
+            post_id = response.json().get("post_id") or response.json().get("id")
+            if post_id:
+                comment_message = random.choice(TRIVIA_AND_LORE) + "\n\n" + generate_engagement_question()
+                post_comment(post_id, comment_message)
+            return post_id
+        else:
+            print(f"❌ Facebook error posting: {response.status_code} - {response.text}")
 
     except Exception as e:
-        print(f"🚨 An error occurred while posting: {e}")
+        print(f"🚨 Error posting to Facebook: {e}")
 
-def comment_on_post(post_id, message):
+def post_comment(post_id, comment_text):
+    page_id = os.getenv("FB_PAGE_ID")
+    token = os.getenv("FB_PAGE_ACCESS_TOKEN")
+
     try:
         url = f"https://graph.facebook.com/{post_id}/comments"
-        data = {
-            "message": message,
-            "access_token": FB_PAGE_ACCESS_TOKEN
-        }
+        data = {"message": comment_text, "access_token": token}
         response = requests.post(url, data=data)
-
+        print("💬 Comment API Response:", response.status_code, "-", response.text)
         if response.status_code == 200:
-            print(f"💬 Comment posted successfully!")
+            print("✅ Comment posted successfully!")
         else:
-            print(f"❌ Failed to post comment: {response.status_code} - {response.text}")
-
+            print(f"❌ Failed to post comment: {response.status_code}")
     except Exception as e:
-        print(f"🚨 Comment error: {e}")
+        print(f"🚨 Error posting comment: {e}")
 
-def save_to_spreadsheet(post_id, npc, comment):
+# --- Google Sheets Logging ---
+
+def log_to_sheet(npc_text, post_id):
     try:
-        now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        worksheet.append_row([now, post_id, npc[:50] + "...", comment])
-        print(f"📋 Post logged to Google Sheets!")
-
+        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        worksheet.append_row([now, npc_text, post_id])
+        print("🧾 NPC logged to Google Sheet!")
     except Exception as e:
-        print(f"🚨 Spreadsheet log error: {e}")
+        print(f"🚨 Error logging to sheet: {e}")
 
 # --- Main Bot Job ---
+
 def job():
     print("🕒 Running bot job...")
     npc = generate_npc()
-    prompt = generate_prompt(npc)
-    image_path = generate_image(prompt, "npc_image.png")
-    post_to_facebook(npc, image_path)
+    post_id = post_to_facebook(npc)
+    if post_id:
+        log_to_sheet(npc, post_id)
 
-# --- Scheduler ---
+# --- Smart Scheduler (Posting When Engagement Is High) ---
+
 def run_scheduler():
     print("📅 Bot scheduler is active...")
-    schedule.every().monday.at("10:00").do(job)
-    schedule.every().thursday.at("10:00").do(job)
+    schedule.every().day.at("10:00").do(job)
+    schedule.every().day.at("17:00").do(job)
+    schedule.every().day.at("20:00").do(job)
 
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# --- Start ---
+# --- Start Everything ---
+
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
+
