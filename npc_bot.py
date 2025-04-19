@@ -18,7 +18,30 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "NPC MasterBot is Alive! ⚡️"
+    return '''
+    <html>
+    <head>
+        <title>🛡️ NPC MasterBot Pro</title>
+        <style>
+            body { font-family: Arial, sans-serif; text-align: center; margin-top: 100px; background-color: #f0f0f5; }
+            h1 { font-size: 48px; margin-bottom: 20px; }
+            .status { background-color: #4CAF50; color: white; padding: 10px 20px; font-size: 24px; border-radius: 8px; display: inline-block; }
+            .post-button { margin-top: 40px; }
+            button { font-size: 24px; padding: 15px 30px; border: none; background-color: #007BFF; color: white; border-radius: 10px; cursor: pointer; }
+            button:hover { background-color: #0056b3; }
+        </style>
+    </head>
+    <body>
+        <h1>🛡️ NPC MasterBot Pro</h1>
+        <div class="status">✅ Bot Status: Online</div>
+        <div class="post-button">
+            <form action="/post-now" method="post">
+                <button type="submit">🚀 Post New NPC Now</button>
+            </form>
+        </div>
+    </body>
+    </html>
+    '''
 
 @app.route('/post-now', methods=['POST'])
 def post_now():
@@ -31,6 +54,7 @@ def run_web():
 def keep_alive():
     t = Thread(target=run_web)
     t.start()
+
 
 # --- Smart Engagement Comment Templates ---
 ENGAGEMENT_TEMPLATES = [
