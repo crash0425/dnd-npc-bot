@@ -3,3 +3,5 @@ schedule
 requests
 openai
 python-dotenv
+gspread
+google-auth
