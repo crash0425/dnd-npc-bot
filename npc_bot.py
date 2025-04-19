@@ -170,6 +170,7 @@ def post_to_facebook(npc, image_path=None):
 def comment_on_post(post_id):
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
+
     if not post_id:
         print("⚠️ No post ID found for commenting.")
         return
@@ -211,7 +212,8 @@ def job():
     last_post_time = datetime.now()
 
     if post_id:
-        time.sleep(30)  # Wait before commenting
+        print(f"🕰️ Waiting 30 seconds before commenting...")
+        time.sleep(30)
         comment_on_post(post_id)
 
 # --- Background Scheduler
