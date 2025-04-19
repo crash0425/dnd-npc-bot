@@ -12,86 +12,73 @@ from datetime import datetime
 # --- Load environment variables
 load_dotenv()
 
-# --- Flask App
+# --- Initialize Flask App
 app = Flask(__name__)
 
-# --- Bot state
+# --- Bot State Tracking
 bot_start_time = datetime.now()
 last_post_time = None
 
-# --- Predefined lore/trivia and emojis
-LORE_AND_TRIVIA = [
-    "📜 Fun Fact: In ancient taverns, storytelling contests could win you free ale!",
-    "💬 Did you know? Some dwarves swear by mushroom ale over traditional mead.",
-    "🧙‍♂️ Wizards once enchanted tavern stools to play pranks on newcomers.",
-    "🎲 Early adventurers believed dice were magical relics of luck.",
-    "🏰 Tavern basements often hide portals to forgotten realms!"
-]
-
-EMOJIS = ["🔥", "⚔️", "🛡️", "🍺", "🎲", "🧙‍♂️", "🐉", "🏰", "🧝‍♀️"]
-
-# --- Dashboard (Fancy)
+# --- Flask Web Dashboard
 @app.route('/')
 def home():
     now = datetime.now()
     uptime = now - bot_start_time
     last_post = last_post_time.strftime("%Y-%m-%d %H:%M:%S") if last_post_time else "Never"
-
     return f'''
     <html>
     <head>
         <title>🛡️ NPC MasterBot Dashboard</title>
         <style>
             body {{
+                background-color: #1c1c1c;
+                color: #f1f1f1;
                 font-family: Arial, sans-serif;
-                background-color: #1a1a1a;
-                color: #f0f0f0;
                 text-align: center;
-                padding: 40px;
+                padding-top: 40px;
             }}
             .button {{
                 background-color: #4CAF50;
-                border: none;
                 color: white;
                 padding: 15px 32px;
-                font-size: 16px;
+                font-size: 18px;
                 margin: 20px;
-                cursor: pointer;
+                border: none;
                 border-radius: 8px;
-                transition: background-color 0.3s ease;
+                cursor: pointer;
+                transition: 0.3s;
             }}
             .button:hover {{
                 background-color: #45a049;
             }}
             .stats {{
                 margin-top: 30px;
-                font-size: 18px;
-                line-height: 1.6;
+                font-size: 20px;
             }}
         </style>
     </head>
     <body>
-        <h1>🧙‍♂️ Welcome to MasterBot Pro Dashboard</h1>
+        <h1>🧙‍♂️ NPC MasterBot Dashboard</h1>
         <form action="/post-now" method="post">
-            <button class="button" type="submit">🚀 Post New NPC Now</button>
+            <button class="button" type="submit">🚀 Post NPC Now</button>
         </form>
         <div class="stats">
-            <p><b>🕒 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
-            <p><b>📝 Last NPC Posted:</b> {last_post}</p>
-            <p><b>📅 Scheduled Posts:</b> Monday & Thursday @ 10:00am</p>
-            <p><b>🌐 Server:</b> <span style="color:lightgreen;">Online ✅</span></p>
+            <p><b>🕒 Uptime:</b> {str(uptime).split('.')[0]}</p>
+            <p><b>📅 Last Post:</b> {last_post}</p>
+            <p><b>📆 Schedule:</b> Mon & Thurs @ 10:00am</p>
+            <p><b>🌐 Server:</b> Online ✅</p>
         </div>
     </body>
     </html>
     '''
 
-# --- Manual Post Endpoint
+# --- Manual Post Trigger
 @app.route('/post-now', methods=['POST'])
 def manual_post():
     Thread(target=job).start()
     return redirect("/")
 
-# --- Extract Race and Class
+# --- Helper: Extract Race and Class
 def extract_race_and_class(npc_text):
     lines = npc_text.split('\n')
     for line in lines:
@@ -110,7 +97,7 @@ def generate_npc():
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with the following format:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
+            {"role": "user", "content": "Generate a D&D NPC in the format:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
         ],
         temperature=0.9
     )
@@ -118,83 +105,48 @@ def generate_npc():
 
 # --- Post to Facebook
 def post_to_facebook(npc, image_path=None):
-    print("🔍 Debug: FB_PAGE_ID =", os.getenv("FB_PAGE_ID"))
-    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present =", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
-
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
     if not page_id or not token:
-        print("⚠️ Facebook credentials missing. Skipping FB post.")
+        print("⚠️ Facebook credentials missing.")
         return
 
-    formatted_post = (
-        f"{npc}\n\n"
-        "#DnD #DungeonsAndDragons #TavernNPC #RPGCharacter #FantasyArt #AIArt #TabletopGames #Roleplay"
-    )
+    formatted_post = f"{npc}\n\n#DnD #DungeonsAndDragons #FantasyNPC #Roleplay #TavernNPC #AIArt"
 
     try:
         if image_path:
-            print("📸 Posting image to Facebook...")
+            print("📸 Uploading photo...")
             url = f"https://graph.facebook.com/{page_id}/photos"
             files = {"source": open(image_path, "rb")}
             data = {"caption": formatted_post.strip(), "access_token": token}
             response = requests.post(url, files=files, data=data)
         else:
-            print("📝 Posting text only...")
+            print("📝 Uploading text post...")
             url = f"https://graph.facebook.com/{page_id}/feed"
             data = {"message": formatted_post.strip(), "access_token": token}
             response = requests.post(url, data=data)
 
-        print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
+        print(f"🔎 Facebook Response: {response.status_code} - {response.text}")
 
         if response.status_code == 200:
-            print("✅ NPC posted to Facebook successfully!")
-
-            post_id = response.json().get("post_id") or response.json().get("id")
-            if post_id:
-                time.sleep(5)
-                auto_comment(post_id)
+            print("✅ Post successful!")
         else:
-            print("❌ Failed to post.")
+            print("❌ Post failed!")
 
     except Exception as e:
-        print("🚨 Error posting to Facebook:", e)
+        print("🚨 Facebook Post Error:", e)
 
-# --- Auto Comment after Post
-def auto_comment(post_id):
-    token = os.getenv("FB_PAGE_ACCESS_TOKEN")
-    if not post_id or not token:
-        print("⚠️ Missing post ID or token for commenting.")
-        return
-
-    comment_text = random.choice(LORE_AND_TRIVIA)
-    emoji = random.choice(EMOJIS)
-
-    try:
-        url = f"https://graph.facebook.com/{post_id}/comments"
-        data = {"message": comment_text, "access_token": token}
-        requests.post(url, data=data)
-
-        emoji_url = f"https://graph.facebook.com/{post_id}/comments"
-        emoji_data = {"message": emoji, "access_token": token}
-        requests.post(emoji_url, data=emoji_data)
-
-        print(f"💬 Auto-commented: {comment_text} {emoji}")
-
-    except Exception as e:
-        print("🚨 Error posting comment:", e)
-
-# --- Main Bot Job
+# --- Bot Main Job
 def job():
     global last_post_time
-    print("🕒 Running bot job...")
+    print("🕒 Starting job...")
 
     npc = generate_npc()
     race, char_class = extract_race_and_class(npc)
 
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    prompt = f"Portrait of a {race} {char_class} inside a fantasy tavern, highly detailed, cinematic lighting, digital painting"
+    prompt = f"Portrait of a {race} {char_class} sitting in a medieval tavern, highly detailed, fantasy art, cinematic lighting"
     response = client.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -209,25 +161,23 @@ def job():
         f.write(image_data)
 
     post_to_facebook(npc, image_path)
-
     last_post_time = datetime.now()
 
-# --- Background Scheduler
+# --- Schedule Tasks
 def run_scheduler():
-    print("📅 Bot scheduler active...")
+    print("📅 Scheduler started...")
     schedule.every().monday.at("10:00").do(job)
     schedule.every().thursday.at("10:00").do(job)
-
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# --- Keep Alive Flask Server
+# --- Keep Flask Server Alive
 def keep_alive():
     t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
     t.start()
 
-# --- Main Runner
+# --- Main Entry
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
