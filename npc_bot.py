@@ -3,30 +3,87 @@ import time
 import schedule
 import requests
 import random
+import openai
 from flask import Flask, request, redirect
 from threading import Thread
 from dotenv import load_dotenv
-import openai
+from datetime import datetime
 
 # --- Load environment variables
 load_dotenv()
 
-# --- Flask server (for uptime)
+# --- Initialize Flask app
+app = Flask(__name__)
+
+# --- Track Bot State
+bot_start_time = datetime.now()
+last_post_time = None
+
+# --- Home Dashboard
 @app.route('/')
 def home():
-    return '''
-    <h1>🧙‍♂️ NPC Bot is Alive!</h1>
-    <form action="/post-now" method="post">
-        <button type="submit">🚀 Post Now</button>
-    </form>
+    now = datetime.now()
+    uptime = now - bot_start_time
+    last_post = last_post_time.strftime("%Y-%m-%d %H:%M:%S") if last_post_time else "Never"
+
+    return f'''
+    <html>
+    <head>
+        <title>🛡️ NPC MasterBot Dashboard</title>
+        <style>
+            body {{
+                font-family: Arial, sans-serif;
+                background-color: #121212;
+                color: #f1f1f1;
+                text-align: center;
+                padding: 40px;
+            }}
+            .button {{
+                background-color: #4CAF50;
+                border: none;
+                color: white;
+                padding: 15px 32px;
+                text-align: center;
+                text-decoration: none;
+                display: inline-block;
+                font-size: 16px;
+                margin: 20px;
+                cursor: pointer;
+                border-radius: 8px;
+                transition: background-color 0.3s ease;
+            }}
+            .button:hover {{
+                background-color: #45a049;
+            }}
+            .stats {{
+                margin-top: 30px;
+                font-size: 18px;
+                line-height: 1.6;
+            }}
+        </style>
+    </head>
+    <body>
+        <h1>🧙‍♂️ Welcome to NPC MasterBot Dashboard</h1>
+        <form action="/post-now" method="post">
+            <button class="button" type="submit">🚀 Post New NPC Now</button>
+        </form>
+        <div class="stats">
+            <p><b>🕒 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
+            <p><b>📝 Last NPC Posted:</b> {last_post}</p>
+            <p><b>📅 Scheduled Posts:</b> Mondays & Thursdays @ 10:00am</p>
+            <p><b>🌐 Server Status:</b> <span style="color:lightgreen;">Online ✅</span></p>
+        </div>
+    </body>
+    </html>
     '''
 
+# --- Manual Post Button
 @app.route('/post-now', methods=['POST'])
 def manual_post():
     Thread(target=job).start()
     return redirect("/")
 
-# --- Helper: Extract Race and Class from NPC
+# --- Helper: Extract Race and Class
 def extract_race_and_class(npc_text):
     lines = npc_text.split('\n')
     for line in lines:
@@ -91,17 +148,14 @@ def post_to_facebook(npc, image_path=None):
     except Exception as e:
         print("🚨 An error occurred while posting to Facebook:", e)
 
-# --- Main Bot Job
+# --- Main Posting Job
 def job():
+    global last_post_time
     print("🕒 Running bot job...")
 
-    # 1. Generate NPC
     npc = generate_npc()
-
-    # 2. Extract for better image prompt
     race, char_class = extract_race_and_class(npc)
 
-    # 3. Generate DALL-E Image
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     prompt = f"Portrait of a {race} {char_class} inside a fantasy tavern, detailed, cinematic lighting, digital painting"
     response = client.images.generate(
@@ -112,16 +166,16 @@ def job():
     )
     image_url = response.data[0].url
 
-    # 4. Download Image
     image_data = requests.get(image_url).content
     image_path = "npc_image.png"
     with open(image_path, "wb") as f:
         f.write(image_data)
 
-    # 5. Post to Facebook
     post_to_facebook(npc, image_path)
 
-# --- Schedule Posts
+    last_post_time = datetime.now()  # 🆕 Save last post time
+
+# --- Background Scheduler
 def run_scheduler():
     print("📅 Bot scheduler is active...")
     schedule.every().monday.at("10:00").do(job)
@@ -131,7 +185,12 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(30)
 
-# --- Main Start
+# --- Keep Alive Server
+def keep_alive():
+    t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
+    t.start()
+
+# --- Start Everything
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
