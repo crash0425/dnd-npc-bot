@@ -1,8 +1,8 @@
 import os
 import time
-import schedule
-import requests
 import random
+import requests
+import schedule
 import openai
 from flask import Flask, request, redirect
 from threading import Thread
@@ -15,23 +15,24 @@ load_dotenv()
 # --- Initialize Flask app
 app = Flask(__name__)
 
-# --- Track Bot State
+# --- Bot State
 bot_start_time = datetime.now()
 last_post_time = None
 
-# --- Comment Templates
-COMMENTS = [
-    "🍻 What's your favorite tavern drink when adventuring?",
-    "🧙‍♂️ If you met this NPC in a tavern, what would you ask them?",
-    "📜 Legend says taverns built near ley lines grant better luck. Believe it?",
-    "⚔️ Who would win in a bar brawl: this NPC or your last character?",
-    "🎲 Roll a d20 — if it's a 20, this NPC buys you a drink!",
-    "🧝‍♀️ Fun Fact: Elves prefer wine brewed by druids over anything else!",
-    "🐉 A dragon once disguised itself as a tavern owner... true story!",
-    "🍺 Gnomish ale is rumored to cause strange dreams... would you try it?",
-    "💬 What's your character's go-to tavern story?",
-    "🛡️ Would you trust this NPC with your life or your gold?"
+# --- Lore & Trivia for comments
+TRIVIA_AND_LORE = [
+    "🧙‍♂️ Lore Drop: In ancient taverns, tales were traded for ale!",
+    "📜 Trivia: Elves believe every tavern has a spirit guardian.",
+    "🍺 Fun Fact: Gnomes invented sparkling mead during a lost festival.",
+    "⚔️ Battle Tale: The bravest warriors once dueled using only spoons!",
+    "🎭 Bard’s Wisdom: Every story has truth hidden between the lies.",
+    "🌟 Did you know? The original D&D tavern was based on a real pub.",
+    "🔮 Arcane Lore: Wizards often plant hidden portals inside taverns.",
+    "🛡️ Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
 ]
+
+# --- Facebook Reactions pool
+REACTIONS = ['LIKE', 'LOVE', 'WOW', 'HAHA']
 
 # --- Home Dashboard
 @app.route('/')
@@ -43,7 +44,7 @@ def home():
     return f'''
     <html>
     <head>
-        <title>🛡️ NPC MasterBot Dashboard</title>
+        <title>🛡️ MasterBot Pro Dashboard</title>
         <style>
             body {{
                 font-family: Arial, sans-serif;
@@ -77,7 +78,7 @@ def home():
         </style>
     </head>
     <body>
-        <h1>🧙‍♂️ Welcome to NPC MasterBot Dashboard</h1>
+        <h1>🧙‍♂️ MasterBot Pro: CHAOS MODE++</h1>
         <form action="/post-now" method="post">
             <button class="button" type="submit">🚀 Post New NPC Now</button>
         </form>
@@ -91,13 +92,13 @@ def home():
     </html>
     '''
 
-# --- Manual Post Button
+# --- Manual Post
 @app.route('/post-now', methods=['POST'])
 def manual_post():
     Thread(target=job).start()
     return redirect("/")
 
-# --- Helper: Extract Race and Class
+# --- Extract race and class
 def extract_race_and_class(npc_text):
     lines = npc_text.split('\n')
     for line in lines:
@@ -116,7 +117,7 @@ def generate_npc():
         model="gpt-4",
         messages=[
             {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with the following format:\nName: ...\nRace & Class: ...\nPersonality: ...\nQuirks: ...\nBackstory: ...\nIdeal: ...\nBond: ...\nFlaw: ..."}
+            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
         ],
         temperature=0.9
     )
@@ -132,60 +133,59 @@ def post_to_facebook(npc, image_path=None):
 
     if not page_id or not token:
         print("⚠️ Facebook credentials missing. Skipping FB post.")
-        return None
+        return
 
     formatted_post = (
         f"{npc}\n\n"
-        "#DnD #DungeonsAndDragons #TavernNPC #RPGCharacter #FantasyArt #AIArt #Roleplay #TabletopGames"
+        "#DnD #DungeonsAndDragons #TavernNPC #FantasyArt #RPGCharacter #AIArt #Roleplay"
     )
 
     try:
         if image_path:
-            print("📸 Posting image to Facebook...")
+            print("📸 Posting image...")
             url = f"https://graph.facebook.com/{page_id}/photos"
             files = {"source": open(image_path, "rb")}
-            data = {"caption": formatted_post.strip(), "access_token": token}
+            data = {"caption": formatted_post, "access_token": token}
             response = requests.post(url, files=files, data=data)
         else:
-            print("📝 Posting text only...")
+            print("📝 Posting text...")
             url = f"https://graph.facebook.com/{page_id}/feed"
-            data = {"message": formatted_post.strip(), "access_token": token}
+            data = {"message": formatted_post, "access_token": token}
             response = requests.post(url, data=data)
 
         print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
 
         if response.status_code == 200:
-            print("✅ NPC posted to Facebook successfully!")
-            response_json = response.json()
-            return response_json.get('post_id') or response_json.get('id')
+            print("✅ Post Successful!")
+            post_id = response.json().get("post_id") or response.json().get("id")
+            if post_id:
+                Thread(target=chaos_engagement, args=(post_id,)).start()
         else:
-            print("❌ Failed to post.")
-            return None
+            print("❌ Post Failed!")
 
     except Exception as e:
-        print("🚨 An error occurred while posting to Facebook:", e)
-        return None
+        print("🚨 Error posting to Facebook:", e)
 
-# --- Post a Comment Under Post
-def comment_on_post(post_id):
+# --- Chaos Engagement: Comment + Reaction
+def chaos_engagement(post_id):
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
-    if not post_id:
-        print("⚠️ No post ID found for commenting.")
-        return
+    # 1. Auto-Comment
+    comment = random.choice(TRIVIA_AND_LORE)
+    comment_url = f"https://graph.facebook.com/{post_id}/comments"
+    comment_data = {"message": comment, "access_token": token}
+    requests.post(comment_url, data=comment_data)
+    print(f"💬 Posted Comment: {comment}")
 
-    comment_message = random.choice(COMMENTS)
-    url = f"https://graph.facebook.com/{post_id}/comments"
-    data = {"message": comment_message, "access_token": token}
-    response = requests.post(url, data=data)
+    # 2. Auto-Reaction
+    reaction = random.choice(REACTIONS)
+    reaction_url = f"https://graph.facebook.com/{post_id}/reactions"
+    reaction_data = {"type": reaction, "access_token": token}
+    requests.post(reaction_url, data=reaction_data)
+    print(f"🎭 Reacted with: {reaction}")
 
-    if response.status_code == 200:
-        print("💬 Commented successfully!")
-    else:
-        print(f"❌ Failed to comment: {response.status_code} - {response.text}")
-
-# --- Main Posting Job
+# --- Full Bot Job
 def job():
     global last_post_time
     print("🕒 Running bot job...")
@@ -194,7 +194,7 @@ def job():
     race, char_class = extract_race_and_class(npc)
 
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    prompt = f"Portrait of a {race} {char_class} inside a fantasy tavern, detailed, cinematic lighting, digital painting"
+    prompt = f"Portrait of a {race} {char_class} in a fantasy tavern, cinematic lighting, detailed, digital art"
     response = client.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -208,30 +208,24 @@ def job():
     with open(image_path, "wb") as f:
         f.write(image_data)
 
-    post_id = post_to_facebook(npc, image_path)
+    post_to_facebook(npc, image_path)
     last_post_time = datetime.now()
 
-    if post_id:
-        print(f"🕰️ Waiting 30 seconds before commenting...")
-        time.sleep(30)
-        comment_on_post(post_id)
-
-# --- Background Scheduler
+# --- Scheduler
 def run_scheduler():
-    print("📅 Bot scheduler is active...")
+    print("📅 Scheduler running...")
     schedule.every().monday.at("10:00").do(job)
     schedule.every().thursday.at("10:00").do(job)
-
     while True:
         schedule.run_pending()
         time.sleep(30)
 
-# --- Keep Alive Server
+# --- Keep Alive
 def keep_alive():
     t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
     t.start()
 
-# --- Start Everything
+# --- Main
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
