@@ -12,23 +12,19 @@ import openai
 load_dotenv()
 
 # --- Flask server (for uptime)
-app = Flask(__name__)
-
 @app.route('/')
 def home():
-    return "🧙‍♂️ NPC Bot is alive!"
+    return '''
+    <h1>🧙‍♂️ NPC Bot is Alive!</h1>
+    <form action="/post-now" method="post">
+        <button type="submit">🚀 Post Now</button>
+    </form>
+    '''
 
 @app.route('/post-now', methods=['POST'])
 def manual_post():
     Thread(target=job).start()
     return redirect("/")
-
-def run_web():
-    app.run(host='0.0.0.0', port=8080)
-
-def keep_alive():
-    t = Thread(target=run_web)
-    t.start()
 
 # --- Helper: Extract Race and Class from NPC
 def extract_race_and_class(npc_text):
