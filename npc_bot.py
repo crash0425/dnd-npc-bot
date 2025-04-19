@@ -9,23 +9,10 @@ import datetime
 from flask import Flask, request, redirect
 from threading import Thread
 import openai
-import gspread
 from dotenv import load_dotenv
 
 # Load .env
 load_dotenv()
-
-# Setup Google Sheets client
-gc = gspread.service_account_from_dict({
-    "type": "service_account",
-    "client_email": os.getenv("GOOGLE_SERVICE_ACCOUNT_EMAIL"),
-    "private_key": os.getenv("GOOGLE_PRIVATE_KEY").replace('\\n', '\n'),
-    "token_uri": "https://oauth2.googleapis.com/token"
-})
-
-# Connect to Google Sheet
-SHEET_ID = os.getenv("GOOGLE_SHEET_ID")
-worksheet = gc.open_by_key(SHEET_ID).sheet1
 
 # Setup Flask Web Server
 app = Flask(__name__)
@@ -140,24 +127,12 @@ def post_comment(post_id, comment_text):
     except Exception as e:
         print(f"🚨 Error posting comment: {e}")
 
-# --- Google Sheets Logging ---
-
-def log_to_sheet(npc_text, post_id):
-    try:
-        now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        worksheet.append_row([now, npc_text, post_id])
-        print("🧾 NPC logged to Google Sheet!")
-    except Exception as e:
-        print(f"🚨 Error logging to sheet: {e}")
-
 # --- Main Bot Job ---
 
 def job():
     print("🕒 Running bot job...")
     npc = generate_npc()
     post_id = post_to_facebook(npc)
-    if post_id:
-        log_to_sheet(npc, post_id)
 
 # --- Smart Scheduler (Posting When Engagement Is High) ---
 
@@ -176,4 +151,3 @@ def run_scheduler():
 if __name__ == "__main__":
     keep_alive()
     run_scheduler()
-
