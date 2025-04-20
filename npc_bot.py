@@ -67,19 +67,20 @@ def home():
 
     return f'''
     <html>
-    <head><title>\ud83d\udee1\ufe0f MasterBot Dashboard</title></head>
+    <head><title>MasterBot Dashboard</title></head>
     <body style="background-color:#121212;color:white;text-align:center;padding:40px;">
-        <h1>\ud83e\uddd9\u200d\u2642\ufe0f MasterBot Pro: Audience Mode</h1>
+        <h1>MasterBot Pro: Audience Mode</h1>
         <form action="/post-now" method="post">
-            <button style="padding:15px;font-size:18px;">\ud83d\ude80 Post New NPC Now</button>
+            <button style="padding:15px;font-size:18px;">Post New NPC Now</button>
         </form>
         <div style="margin-top:30px;">
-            <p><b>\ud83d\udd52 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
-            <p><b>\ud83d\udcdd Last NPC Posted:</b> {last_post}</p>
+            <p><b>Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
+            <p><b>Last NPC Posted:</b> {last_post}</p>
         </div>
     </body>
     </html>
     '''
+
 
 @app.route('/post-now', methods=['POST'])
 def manual_post():
