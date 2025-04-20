@@ -45,7 +45,7 @@ TRIVIA_AND_LORE = [
 REACTIONS = ['LIKE', 'LOVE', 'WOW', 'HAHA']
 
 # --- Helper Classes
-cclass PDF(FPDF):
+class PDF(FPDF):
     def header(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_font('DejaVu', 'B', 16)
