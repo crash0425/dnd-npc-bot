@@ -45,18 +45,18 @@ TRIVIA_AND_LORE = [
 REACTIONS = ['LIKE', 'LOVE', 'WOW', 'HAHA']
 
 # --- Helper Classes
-class PDF(FPDF):
+cclass PDF(FPDF):
     def header(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
-            self.set_font('Arial', 'B', 16)
-            self.cell(0, 10, "Fantasy NPC Forge", ln=True, align='C')
-            self.ln(10)
+            self.set_font('DejaVu', 'B', 16)
+            self.cell(0, 10, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT")
 
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_y(-15)
-            self.set_font('Arial', 'I', 8)
+            self.set_font('DejaVu', 'I', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
+
 
 # --- Flask Routes
 @app.route('/')
