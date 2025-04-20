@@ -144,32 +144,50 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # --- Add Cover Image
+    # --- Cover Page
     pdf.add_page()
-    pdf.image(cover_image_path, x=10, y=30, w=190)
+    pdf.image(cover_image_path, x=10, y=20, w=190)
 
-    # --- Add Title After Image
-    pdf.set_font("Arial", 'B', 24)
-    pdf.ln(120)
-    pdf.cell(0, 10, "Fantasy NPC Forge", ln=True, align='C')
-    pdf.set_font("Arial", '', 18)
-    pdf.cell(0, 10, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
+    # --- Title Page
+    pdf.add_page()
+    pdf.set_font("Times", 'B', 32)
+    pdf.cell(0, 80, "", ln=True)  # Spacer
+    pdf.cell(0, 20, "Fantasy NPC Forge", ln=True, align='C')
+    pdf.set_font("Times", '', 20)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
 
     # --- Add NPCs
-    pdf.add_page()
     for npc in volume_npcs:
-        pdf.set_font("Arial", size=12)
+        pdf.add_page()
+        pdf.set_font("Times", 'B', 20)
         lines = npc.splitlines()
-    for line in lines:
-        pdf.multi_cell(190, 8, line)  # Set width = 190mm to avoid crash
-    pdf.ln(5)
 
+        for idx, line in enumerate(lines):
+            if ":" in line:
+                label, content = line.split(":", 1)
+                label = label.strip()
+                content = content.strip()
+
+                # Header-style for Name and Race & Class
+                if label.lower() in ["name", "race & class"]:
+                    pdf.set_font("Times", 'B', 18)
+                    pdf.cell(0, 10, f"{label}: {content}", ln=True)
+                else:
+                    pdf.set_font("Times", '', 14)
+                    pdf.multi_cell(0, 8, f"{label}: {content}")
+            else:
+                # If weird line, just print normally
+                pdf.set_font("Times", '', 12)
+                pdf.multi_cell(0, 8, line)
+
+        pdf.ln(10)
 
     pdf.output(output_file)
 
     print(f"Volume {volume_number} PDF created!")
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
+
 
 # --- Bot Job
 def job():
