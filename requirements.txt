@@ -1,6 +1,10 @@
-openai
 flask
-requests
-python-dotenv
 schedule
+requests
+openai
+python-dotenv
 fpdf2
+google-api-python-client
+google-auth
+google-auth-httplib2
+google-auth-oauthlib
