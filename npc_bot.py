@@ -29,16 +29,16 @@ ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
 NPCS_PER_VOLUME = 10
 
-# --- Lore & Trivia
+# --- Lore & Trivia (remove emoji codes!)
 TRIVIA_AND_LORE = [
-    "\ud83e\uddd9\u200d\u2642\ufe0f Lore Drop: In ancient taverns, tales were traded for ale!",
-    "\ud83d\udcdc Trivia: Elves believe every tavern has a spirit guardian.",
-    "\ud83c\udf7a Fun Fact: Gnomes invented sparkling mead during a lost festival.",
-    "\u2694\ufe0f Battle Tale: The bravest warriors once dueled using only spoons!",
-    "\ud83c\udfad Bard’s Wisdom: Every story has truth hidden between the lies.",
-    "\ud83c\udf1f Did you know? The original D&D tavern was based on a real pub.",
-    "\ud83d\udd2e Arcane Lore: Wizards often plant hidden portals inside taverns.",
-    "\ud83d\udee1\ufe0f Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
+    "Lore Drop: In ancient taverns, tales were traded for ale!",
+    "Trivia: Elves believe every tavern has a spirit guardian.",
+    "Fun Fact: Gnomes invented sparkling mead during a lost festival.",
+    "Battle Tale: The bravest warriors once dueled using only spoons!",
+    "Bard’s Wisdom: Every story has truth hidden between the lies.",
+    "Did you know? The original D&D tavern was based on a real pub.",
+    "Arcane Lore: Wizards often plant hidden portals inside taverns.",
+    "Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
 ]
 
 # --- Facebook Reactions
@@ -49,7 +49,7 @@ class PDF(FPDF):
     def header(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_font('Arial', 'B', 16)
-            self.cell(0, 10, "\ud83e\uddd9\u200d\u2642\ufe0f Fantasy NPC Forge", ln=True, align='C')
+            self.cell(0, 10, "Fantasy NPC Forge", ln=True, align='C')
             self.ln(10)
 
     def footer(self):
@@ -80,7 +80,6 @@ def home():
     </body>
     </html>
     '''
-
 
 @app.route('/post-now', methods=['POST'])
 def manual_post():
@@ -124,7 +123,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     # --- Generate DALL-E Cover Art
-    print("\ud83c\udfa8 Generating DALL-E Cover Art...")
+    print("Generating DALL-E Cover Art...")
     prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
 
     image_response = client.images.generate(
@@ -167,11 +166,9 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     pdf.output(output_file)
 
-    print(f"\ud83d\udcdc Volume {volume_number} PDF created!")
-
-    # --- Upload to Drive
+    print(f"Volume {volume_number} PDF created!")
     shareable_link = upload_to_drive(output_file)
-    print(f"\u2601\ufe0f Volume {volume_number} uploaded to Google Drive: {shareable_link}")
+    print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
 
 # --- Bot Job
 def job():
@@ -182,7 +179,6 @@ def job():
     check_and_create_volume()
 
     last_post_time = datetime.now()
-
 
 # --- Scheduler
 def run_scheduler():
