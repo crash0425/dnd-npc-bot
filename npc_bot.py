@@ -9,6 +9,7 @@ from threading import Thread
 from dotenv import load_dotenv
 from datetime import datetime
 from fpdf import FPDF
+from fpdf.enums import XPos, YPos
 from gdrive_uploader import upload_to_drive
 
 # --- Load environment variables
@@ -27,9 +28,9 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2
+NPCS_PER_VOLUME = 2  # Set to 2 for easier testing
 
-# --- Lore & Trivia (remove emoji codes!)
+# --- Lore & Trivia (no emojis)
 TRIVIA_AND_LORE = [
     "Lore Drop: In ancient taverns, tales were traded for ale!",
     "Trivia: Elves believe every tavern has a spirit guardian.",
@@ -41,15 +42,12 @@ TRIVIA_AND_LORE = [
     "Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
 ]
 
-# --- Facebook Reactions
-REACTIONS = ['LIKE', 'LOVE', 'WOW', 'HAHA']
-
 # --- Helper Classes
 class PDF(FPDF):
     def header(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_font('DejaVu', 'B', 16)
-            self.cell(0, 10, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT")
+            self.cell(0, 10, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
@@ -57,6 +55,11 @@ class PDF(FPDF):
             self.set_font('DejaVu', 'I', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
+# --- Load DejaVu Fonts
+def load_fonts(pdf):
+    pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
+    pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', uni=True)
+    pdf.add_font('DejaVu', 'I', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf', uni=True)
 
 # --- Flask Routes
 @app.route('/')
@@ -118,6 +121,7 @@ def check_and_create_volume():
     if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) > 0:
         volume_npcs = npcs[-NPCS_PER_VOLUME:]
         create_volume_pdf(volume_npcs, volume_number)
+
 def create_volume_pdf(volume_npcs, volume_number):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -142,6 +146,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
+    load_fonts(pdf)  # Load DejaVu fonts after creating PDF
 
     # --- Cover Page
     pdf.add_page()
@@ -149,16 +154,16 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     # --- Title Page
     pdf.add_page()
-    pdf.set_font("Times", 'B', 32)
-    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
-    pdf.set_font("Times", '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.set_font("DejaVu", 'B', 32)
+    pdf.cell(0, 80, "", new_x=XPos.LMARGIN, new_y=YPos.NEXT)  # Spacer
+    pdf.cell(0, 20, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_font("DejaVu", '', 20)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
     # --- Add NPCs
     for npc in volume_npcs:
         pdf.add_page()
-        pdf.set_font("Times", 'B', 20)
+        pdf.set_font("DejaVu", 'B', 20)
         lines = npc.splitlines()
 
         for idx, line in enumerate(lines):
@@ -167,15 +172,14 @@ def create_volume_pdf(volume_npcs, volume_number):
                 label = label.strip()
                 content = content.strip()
 
-                # Header-style for Name and Race & Class
                 if label.lower() in ["name", "race & class"]:
-                    pdf.set_font("Times", 'B', 18)
-                    pdf.cell(0, 10, f"{label}: {content}", new_x="LMARGIN", new_y="NEXT")
+                    pdf.set_font("DejaVu", 'B', 18)
+                    pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 else:
-                    pdf.set_font("Times", '', 14)
+                    pdf.set_font("DejaVu", '', 14)
                     pdf.multi_cell(190, 8, f"{label}: {content}")
             else:
-                pdf.set_font("Times", '', 12)
+                pdf.set_font("DejaVu", '', 12)
                 pdf.multi_cell(190, 8, line)
 
         pdf.ln(10)
@@ -185,8 +189,6 @@ def create_volume_pdf(volume_npcs, volume_number):
     print(f"Volume {volume_number} PDF created!")
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
-
-
 
 # --- Bot Job
 def job():
