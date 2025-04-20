@@ -176,12 +176,13 @@ def create_volume_pdf(volume_npcs, volume_number):
 # --- Bot Job
 def job():
     global last_post_time
-    print("\ud83d\udd52 Running scheduled job...")
+    print("Running scheduled job...")
 
     npc = generate_npc()
     check_and_create_volume()
 
     last_post_time = datetime.now()
+
 
 # --- Scheduler
 def run_scheduler():
