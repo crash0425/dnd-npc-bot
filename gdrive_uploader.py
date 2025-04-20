@@ -5,7 +5,7 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
 # --- CONFIG ---
-FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE"  # Replace with your real Drive folder ID
+FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"  # Replace with your real Drive folder ID
 
 def upload_to_drive(file_path):
     """Uploads a file to Google Drive and returns the shareable link."""
