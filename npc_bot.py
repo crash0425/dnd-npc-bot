@@ -27,7 +27,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 10
+NPCS_PER_VOLUME = 2
 
 # --- Lore & Trivia (remove emoji codes!)
 TRIVIA_AND_LORE = [
