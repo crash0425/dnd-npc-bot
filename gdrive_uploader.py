@@ -1,16 +1,23 @@
+import os
+import json
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
-import os
 
 # --- CONFIG ---
-CREDENTIALS_FILE = "credentials.json"  # your downloaded Google API key
-FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"  # Replace with your Drive folder ID
+FOLDER_ID = "YOUR_GOOGLE_DRIVE_FOLDER_ID_HERE"  # Replace with your real Drive folder ID
 
 def upload_to_drive(file_path):
     """Uploads a file to Google Drive and returns the shareable link."""
-    credentials = service_account.Credentials.from_service_account_file(
-        CREDENTIALS_FILE,
+    
+    # Load credentials from environment variable
+    credentials_json = os.getenv('GOOGLE_CREDENTIALS')
+    if not credentials_json:
+        raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
+    
+    credentials_info = json.loads(credentials_json)
+    credentials = service_account.Credentials.from_service_account_info(
+        credentials_info,
         scopes=["https://www.googleapis.com/auth/drive"]
     )
 
