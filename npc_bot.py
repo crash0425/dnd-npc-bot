@@ -160,9 +160,10 @@ def create_volume_pdf(volume_npcs, volume_number):
     for npc in volume_npcs:
         pdf.set_font("Arial", size=12)
         lines = npc.splitlines()
-        for line in lines:
-            pdf.multi_cell(0, 8, line)
-        pdf.ln(5)
+    for line in lines:
+        pdf.multi_cell(190, 8, line)  # Set width = 190mm to avoid crash
+    pdf.ln(5)
+
 
     pdf.output(output_file)
 
