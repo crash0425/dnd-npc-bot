@@ -118,7 +118,6 @@ def check_and_create_volume():
     if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) > 0:
         volume_npcs = npcs[-NPCS_PER_VOLUME:]
         create_volume_pdf(volume_npcs, volume_number)
-
 def create_volume_pdf(volume_npcs, volume_number):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -151,10 +150,10 @@ def create_volume_pdf(volume_npcs, volume_number):
     # --- Title Page
     pdf.add_page()
     pdf.set_font("Times", 'B', 32)
-    pdf.cell(0, 80, "", ln=True)  # Spacer
-    pdf.cell(0, 20, "Fantasy NPC Forge", ln=True, align='C')
+    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
+    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font("Times", '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
 
     # --- Add NPCs
     for npc in volume_npcs:
@@ -171,14 +170,13 @@ def create_volume_pdf(volume_npcs, volume_number):
                 # Header-style for Name and Race & Class
                 if label.lower() in ["name", "race & class"]:
                     pdf.set_font("Times", 'B', 18)
-                    pdf.cell(0, 10, f"{label}: {content}", ln=True)
+                    pdf.cell(0, 10, f"{label}: {content}", new_x="LMARGIN", new_y="NEXT")
                 else:
                     pdf.set_font("Times", '', 14)
-                    pdf.multi_cell(0, 8, f"{label}: {content}")
+                    pdf.multi_cell(190, 8, f"{label}: {content}")
             else:
-                # If weird line, just print normally
                 pdf.set_font("Times", '', 12)
-                pdf.multi_cell(0, 8, line)
+                pdf.multi_cell(190, 8, line)
 
         pdf.ln(10)
 
@@ -187,6 +185,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     print(f"Volume {volume_number} PDF created!")
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
+
 
 
 # --- Bot Job
