@@ -18,6 +18,8 @@ app = Flask(__name__)
 # --- Bot State
 bot_start_time = datetime.now()
 last_post_time = None
+next_scheduled_time = None
+next_scheduled_day = None
 
 # --- Lore & Trivia for comments
 TRIVIA_AND_LORE = [
@@ -85,7 +87,7 @@ def home():
         <div class="stats">
             <p><b>🕒 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
             <p><b>📝 Last NPC Posted:</b> {last_post}</p>
-            <p><b>📅 Scheduled Posts:</b> Mondays & Thursdays @ 10:00am</p>
+            <p><b>📅 Next Scheduled Post:</b> {next_scheduled_day if next_scheduled_day else "Loading..."} at {next_scheduled_time if next_scheduled_time else "Loading..."}</p>
             <p><b>🌐 Server Status:</b> <span style="color:lightgreen;">Online ✅</span></p>
         </div>
     </body>
@@ -140,45 +142,49 @@ def post_to_facebook(npc, image_path=None):
         "#DnD #DungeonsAndDragons #TavernNPC #FantasyArt #RPGCharacter #AIArt #Roleplay"
     )
 
-    try:
-        if image_path:
-            print("📸 Posting image...")
-            url = f"https://graph.facebook.com/{page_id}/photos"
-            files = {"source": open(image_path, "rb")}
-            data = {"caption": formatted_post, "access_token": token}
-            response = requests.post(url, files=files, data=data)
-        else:
-            print("📝 Posting text...")
-            url = f"https://graph.facebook.com/{page_id}/feed"
-            data = {"message": formatted_post, "access_token": token}
-            response = requests.post(url, data=data)
+    url = f"https://graph.facebook.com/{page_id}/photos" if image_path else f"https://graph.facebook.com/{page_id}/feed"
+    data = {"caption": formatted_post, "access_token": token} if image_path else {"message": formatted_post, "access_token": token}
 
-        print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            if image_path:
+                files = {"source": open(image_path, "rb")}
+                response = requests.post(url, files=files, data=data)
+            else:
+                response = requests.post(url, data=data)
 
-        if response.status_code == 200:
-            print("✅ Post Successful!")
-            post_id = response.json().get("post_id") or response.json().get("id")
-            if post_id:
-                Thread(target=chaos_engagement, args=(post_id,)).start()
-        else:
-            print("❌ Post Failed!")
+            print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
 
-    except Exception as e:
-        print("🚨 Error posting to Facebook:", e)
+            if response.status_code == 200:
+                print("✅ Post Successful!")
+                post_id = response.json().get("post_id") or response.json().get("id")
+                if post_id:
+                    Thread(target=chaos_engagement, args=(post_id,)).start()
+
+                if image_path and os.path.exists(image_path):
+                    os.remove(image_path)
+                    print(f"🧹 Deleted temporary image: {image_path}")
+                break  # Exit retry loop on success
+            else:
+                print(f"⚠️ Attempt {attempt+1}: Post failed. Retrying...")
+                time.sleep(5)
+
+        except Exception as e:
+            print(f"🚨 Attempt {attempt+1}: Error posting to Facebook:", e)
+            time.sleep(5)
 
 # --- Chaos Engagement: Comment + Reaction
 def chaos_engagement(post_id):
     page_id = os.getenv("FB_PAGE_ID")
     token = os.getenv("FB_PAGE_ACCESS_TOKEN")
 
-    # 1. Auto-Comment
     comment = random.choice(TRIVIA_AND_LORE)
     comment_url = f"https://graph.facebook.com/{post_id}/comments"
     comment_data = {"message": comment, "access_token": token}
     requests.post(comment_url, data=comment_data)
     print(f"💬 Posted Comment: {comment}")
 
-    # 2. Auto-Reaction
     reaction = random.choice(REACTIONS)
     reaction_url = f"https://graph.facebook.com/{post_id}/reactions"
     reaction_data = {"type": reaction, "access_token": token}
@@ -212,10 +218,45 @@ def job():
     last_post_time = datetime.now()
 
 # --- Scheduler
+def schedule_next_post():
+    global next_scheduled_time, next_scheduled_day
+
+    if random.random() < 0.9:
+        hour = random.randint(9, 11)
+    else:
+        hour = random.randint(13, 15)
+
+    minute = random.randint(0, 59)
+    scheduled_time = f"{hour:02d}:{minute:02d}"
+
+    now = datetime.now()
+    weekday = now.weekday()
+
+    if weekday in [0, 1, 2]:
+        next_day = "thursday"
+    elif weekday == 3 and now.hour < 12:
+        next_day = "thursday"
+    else:
+        next_day = "monday"
+
+    next_scheduled_time = scheduled_time
+    next_scheduled_day = next_day.capitalize()
+
+    print(f"📅 Next scheduled post: {next_scheduled_day} at {scheduled_time}")
+
+    if next_day == "monday":
+        schedule.every().monday.at(scheduled_time).do(post_and_reschedule)
+    else:
+        schedule.every().thursday.at(scheduled_time).do(post_and_reschedule)
+
+def post_and_reschedule():
+    job()
+    schedule.clear()
+    schedule_next_post()
+
 def run_scheduler():
-    print("📅 Scheduler running...")
-    schedule.every().monday.at("10:00").do(job)
-    schedule.every().thursday.at("10:00").do(job)
+    print("📅 Scheduler with random times running...")
+    schedule_next_post()
     while True:
         schedule.run_pending()
         time.sleep(30)
