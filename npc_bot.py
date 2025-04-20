@@ -9,6 +9,7 @@ from threading import Thread
 from dotenv import load_dotenv
 from datetime import datetime
 from fpdf import FPDF
+from gdrive_uploader import upload_to_drive
 
 # --- Load environment variables
 load_dotenv()
@@ -75,8 +76,6 @@ def home():
         <div style="margin-top:30px;">
             <p><b>\ud83d\udd52 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
             <p><b>\ud83d\udcdd Last NPC Posted:</b> {last_post}</p>
-            <p><b>\ud83d\uddd3 Next Scheduled Post:</b> {next_scheduled_day if next_scheduled_day else "Loading..."} at {next_scheduled_time if next_scheduled_time else "Loading..."}</p>
-            <p><b>\ud83c\udf10 Server Status:</b> Online \u2705</p>
         </div>
     </body>
     </html>
@@ -86,28 +85,6 @@ def home():
 def manual_post():
     Thread(target=job).start()
     return redirect("/")
-
-@app.route('/incoming-message', methods=['GET'])
-def verify():
-    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
-        if request.args.get("hub.verify_token") == VERIFY_TOKEN:
-            return request.args.get("hub.challenge"), 200
-        return "Verification token mismatch", 403
-    return "Hello world", 200
-
-@app.route('/incoming-message', methods=['POST'])
-def incoming_message():
-    data = request.get_json()
-    if data["object"] == "page":
-        for entry in data["entry"]:
-            for messaging_event in entry["messaging"]:
-                if messaging_event.get("message"):
-                    sender_id = messaging_event["sender"]["id"]
-                    message_text = messaging_event["message"].get("text")
-                    if message_text:
-                        npc = generate_custom_npc(message_text)
-                        send_message(sender_id, npc)
-    return "ok", 200
 
 # --- Bot Functions
 def generate_npc():
@@ -128,25 +105,6 @@ def save_npc(npc_text):
     with open(ARCHIVE_FILE, "a", encoding="utf-8") as f:
         f.write(npc_text + "\n---\n")
 
-def generate_custom_npc(prompt):
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a creative D&D character generator."},
-            {"role": "user", "content": f"Generate an NPC based on: {prompt}. Include Name, Race & Class, Personality, and Backstory."}
-        ],
-        temperature=0.8
-    )
-    return response.choices[0].message.content.strip()
-
-def send_message(recipient_id, message_text):
-    page_access_token = os.getenv("FB_PAGE_ACCESS_TOKEN")
-    url = f"https://graph.facebook.com/v13.0/me/messages?access_token={page_access_token}"
-    payload = {"recipient": {"id": recipient_id}, "message": {"text": message_text}}
-    requests.post(url, json=payload)
-
-# --- Volume & Cover Automation
 def check_and_create_volume():
     if not os.path.exists(VOLUME_FOLDER):
         os.makedirs(VOLUME_FOLDER)
@@ -159,61 +117,67 @@ def check_and_create_volume():
 
     if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) > 0:
         volume_npcs = npcs[-NPCS_PER_VOLUME:]
-        output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
+        create_volume_pdf(volume_npcs, volume_number)
 
-        # Create Cover Art
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        cover_prompt = f"Fantasy book cover for Dungeons & Dragons NPC collection, Volume {volume_number}, tavern fantasy art, cinematic lighting"
-        image_response = client.images.generate(
-            model="dall-e-3",
-            prompt=cover_prompt,
-            n=1,
-            size="1024x1024"
-        )
-        image_url = image_response.data[0].url
-        image_data = requests.get(image_url).content
-        cover_path = os.path.join(VOLUME_FOLDER, f"Cover_Volume{volume_number}.png")
-        with open(cover_path, "wb") as f:
-            f.write(image_data)
+def create_volume_pdf(volume_npcs, volume_number):
+    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-        # Build PDF with Cover
-        pdf = PDF()
-        pdf.set_auto_page_break(auto=True, margin=15)
+    # --- Generate DALL-E Cover Art
+    print("\ud83c\udfa8 Generating DALL-E Cover Art...")
+    prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
 
-        pdf.add_page()
-        pdf.cover_page = True
-        pdf.image(cover_path, x=0, y=0, w=210, h=297)
-        del pdf.cover_page
+    image_response = client.images.generate(
+        model="dall-e-3",
+        prompt=prompt,
+        n=1,
+        size="1024x1024"
+    )
+    image_url = image_response.data[0].url
 
-        pdf.add_page()
-        pdf.set_font("Arial", 'B', 24)
-        pdf.cell(0, 60, "", ln=True)
-        pdf.cell(0, 10, "Fantasy NPC Forge", ln=True, align='C')
-        pdf.set_font("Arial", '', 18)
-        pdf.cell(0, 10, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
-        pdf.ln(10)
+    image_data = requests.get(image_url).content
+    cover_image_path = os.path.join(VOLUME_FOLDER, f"cover_volume{volume_number}.png")
+    with open(cover_image_path, "wb") as f:
+        f.write(image_data)
 
-        for npc in volume_npcs:
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            lines = npc.splitlines()
-            for line in lines:
-                pdf.multi_cell(0, 8, line)
-            pdf.ln(5)
+    # --- Build PDF
+    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
+    pdf = PDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
 
-        pdf.output(output_file)
-        print(f"\u2705 Created: {output_file}")
+    # --- Add Cover Image
+    pdf.add_page()
+    pdf.image(cover_image_path, x=10, y=30, w=190)
+
+    # --- Add Title After Image
+    pdf.set_font("Arial", 'B', 24)
+    pdf.ln(120)
+    pdf.cell(0, 10, "Fantasy NPC Forge", ln=True, align='C')
+    pdf.set_font("Arial", '', 18)
+    pdf.cell(0, 10, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
+
+    # --- Add NPCs
+    pdf.add_page()
+    for npc in volume_npcs:
+        pdf.set_font("Arial", size=12)
+        lines = npc.splitlines()
+        for line in lines:
+            pdf.multi_cell(0, 8, line)
+        pdf.ln(5)
+
+    pdf.output(output_file)
+
+    print(f"\ud83d\udcdc Volume {volume_number} PDF created!")
+
+    # --- Upload to Drive
+    shareable_link = upload_to_drive(output_file)
+    print(f"\u2601\ufe0f Volume {volume_number} uploaded to Google Drive: {shareable_link}")
 
 # --- Bot Job
-
 def job():
     global last_post_time
-
     print("\ud83d\udd52 Running scheduled job...")
 
     npc = generate_npc()
-    # (you can add your Facebook posting code here if needed)
-
     check_and_create_volume()
 
     last_post_time = datetime.now()
@@ -228,7 +192,6 @@ def run_scheduler():
         time.sleep(30)
 
 # --- Keep Alive
-
 def keep_alive():
     t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
     t.start()
