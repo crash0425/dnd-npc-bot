@@ -1,7 +1,6 @@
-flask
-schedule
-requests
 openai
+flask
+requests
 python-dotenv
-gspread
-google-auth
+schedule
+fpdf2
