@@ -20,8 +20,9 @@ bot_start_time = datetime.now()
 last_post_time = None
 next_scheduled_time = None
 next_scheduled_day = None
+VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 
-# --- Lore & Trivia for comments
+# --- Lore & Trivia
 TRIVIA_AND_LORE = [
     "🧙‍♂️ Lore Drop: In ancient taverns, tales were traded for ale!",
     "📜 Trivia: Elves believe every tavern has a spirit guardian.",
@@ -33,7 +34,7 @@ TRIVIA_AND_LORE = [
     "🛡️ Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
 ]
 
-# --- Facebook Reactions pool
+# --- Facebook Reactions
 REACTIONS = ['LIKE', 'LOVE', 'WOW', 'HAHA']
 
 # --- Home Dashboard
@@ -45,50 +46,17 @@ def home():
 
     return f'''
     <html>
-    <head>
-        <title>🛡️ MasterBot Pro Dashboard</title>
-        <style>
-            body {{
-                font-family: Arial, sans-serif;
-                background-color: #121212;
-                color: #f1f1f1;
-                text-align: center;
-                padding: 40px;
-            }}
-            .button {{
-                background-color: #4CAF50;
-                border: none;
-                color: white;
-                padding: 15px 32px;
-                text-align: center;
-                text-decoration: none;
-                display: inline-block;
-                font-size: 16px;
-                margin: 20px;
-                cursor: pointer;
-                border-radius: 8px;
-                transition: background-color 0.3s ease;
-            }}
-            .button:hover {{
-                background-color: #45a049;
-            }}
-            .stats {{
-                margin-top: 30px;
-                font-size: 18px;
-                line-height: 1.6;
-            }}
-        </style>
-    </head>
-    <body>
-        <h1>🧙‍♂️ MasterBot Pro: CHAOS MODE++</h1>
+    <head><title>🛡️ MasterBot Dashboard</title></head>
+    <body style="background-color:#121212;color:white;text-align:center;padding:40px;">
+        <h1>🧙‍♂️ MasterBot Pro: Audience Mode</h1>
         <form action="/post-now" method="post">
-            <button class="button" type="submit">🚀 Post New NPC Now</button>
+            <button style="padding:15px;font-size:18px;">🚀 Post New NPC Now</button>
         </form>
-        <div class="stats">
+        <div style="margin-top:30px;">
             <p><b>🕒 Bot Uptime:</b> {str(uptime).split(".")[0]}</p>
             <p><b>📝 Last NPC Posted:</b> {last_post}</p>
             <p><b>📅 Next Scheduled Post:</b> {next_scheduled_day if next_scheduled_day else "Loading..."} at {next_scheduled_time if next_scheduled_time else "Loading..."}</p>
-            <p><b>🌐 Server Status:</b> <span style="color:lightgreen;">Online ✅</span></p>
+            <p><b>🌐 Server Status:</b> Online ✅</p>
         </div>
     </body>
     </html>
@@ -100,173 +68,32 @@ def manual_post():
     Thread(target=job).start()
     return redirect("/")
 
-# --- Extract race and class
-def extract_race_and_class(npc_text):
-    lines = npc_text.split('\n')
-    for line in lines:
-        if line.lower().startswith("race & class"):
-            parts = line.split(":", 1)
-            if len(parts) > 1:
-                race_class = parts[1].strip()
-                if " " in race_class:
-                    return race_class.split(" ", 1)
-    return "Human", "Fighter"
+# --- Facebook Webhook Verification
+@app.route('/incoming-message', methods=['GET'])
+def verify():
+    if request.args.get("hub.mode") == "subscribe" and request.args.get("hub.challenge"):
+        if request.args.get("hub.verify_token") == VERIFY_TOKEN:
+            return request.args.get("hub.challenge"), 200
+        return "Verification token mismatch", 403
+    return "Hello world", 200
 
-# --- Generate NPC
-def generate_npc():
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative Dungeons & Dragons NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
-        ],
-        temperature=0.9
-    )
-    return response.choices[0].message.content.strip()
+# --- Facebook Incoming Message (DMs)
+@app.route('/incoming-message', methods=['POST'])
+def incoming_message():
+    data = request.get_json()
+    print("📥 Incoming message data:", data)
 
-# --- Post to Facebook
-def post_to_facebook(npc, image_path=None):
-    print("🔍 Debug: FB_PAGE_ID =", os.getenv("FB_PAGE_ID"))
-    print("🔍 Debug: FB_PAGE_ACCESS_TOKEN present =", bool(os.getenv("FB_PAGE_ACCESS_TOKEN")))
+    if data["object"] == "page":
+        for entry in data["entry"]:
+            for messaging_event in entry["messaging"]:
+                if messaging_event.get("message"):
+                    sender_id = messaging_event["sender"]["id"]
+                    message_text = messaging_event["message"].get("text")
 
-    page_id = os.getenv("FB_PAGE_ID")
-    token = os.getenv("FB_PAGE_ACCESS_TOKEN")
+                    if message_text:
+                        npc = generate_custom_npc(message_text)
+                        send_message(sender_id, npc)
 
-    if not page_id or not token:
-        print("⚠️ Facebook credentials missing. Skipping FB post.")
-        return
+    return "ok", 200
 
-    formatted_post = (
-        f"{npc}\n\n"
-        "#DnD #DungeonsAndDragons #TavernNPC #FantasyArt #RPGCharacter #AIArt #Roleplay"
-    )
-
-    url = f"https://graph.facebook.com/{page_id}/photos" if image_path else f"https://graph.facebook.com/{page_id}/feed"
-    data = {"caption": formatted_post, "access_token": token} if image_path else {"message": formatted_post, "access_token": token}
-
-    max_retries = 3
-    for attempt in range(max_retries):
-        try:
-            if image_path:
-                files = {"source": open(image_path, "rb")}
-                response = requests.post(url, files=files, data=data)
-            else:
-                response = requests.post(url, data=data)
-
-            print(f"🔎 Facebook API Response: {response.status_code} - {response.text}")
-
-            if response.status_code == 200:
-                print("✅ Post Successful!")
-                post_id = response.json().get("post_id") or response.json().get("id")
-                if post_id:
-                    Thread(target=chaos_engagement, args=(post_id,)).start()
-
-                if image_path and os.path.exists(image_path):
-                    os.remove(image_path)
-                    print(f"🧹 Deleted temporary image: {image_path}")
-                break  # Exit retry loop on success
-            else:
-                print(f"⚠️ Attempt {attempt+1}: Post failed. Retrying...")
-                time.sleep(5)
-
-        except Exception as e:
-            print(f"🚨 Attempt {attempt+1}: Error posting to Facebook:", e)
-            time.sleep(5)
-
-# --- Chaos Engagement: Comment + Reaction
-def chaos_engagement(post_id):
-    page_id = os.getenv("FB_PAGE_ID")
-    token = os.getenv("FB_PAGE_ACCESS_TOKEN")
-
-    comment = random.choice(TRIVIA_AND_LORE)
-    comment_url = f"https://graph.facebook.com/{post_id}/comments"
-    comment_data = {"message": comment, "access_token": token}
-    requests.post(comment_url, data=comment_data)
-    print(f"💬 Posted Comment: {comment}")
-
-    reaction = random.choice(REACTIONS)
-    reaction_url = f"https://graph.facebook.com/{post_id}/reactions"
-    reaction_data = {"type": reaction, "access_token": token}
-    requests.post(reaction_url, data=reaction_data)
-    print(f"🎭 Reacted with: {reaction}")
-
-# --- Full Bot Job
-def job():
-    global last_post_time
-    print("🕒 Running bot job...")
-
-    npc = generate_npc()
-    race, char_class = extract_race_and_class(npc)
-
-    client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    prompt = f"Portrait of a {race} {char_class} in a fantasy tavern, cinematic lighting, detailed, digital art"
-    response = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        n=1,
-        size="1024x1024"
-    )
-    image_url = response.data[0].url
-
-    image_data = requests.get(image_url).content
-    image_path = "npc_image.png"
-    with open(image_path, "wb") as f:
-        f.write(image_data)
-
-    post_to_facebook(npc, image_path)
-    last_post_time = datetime.now()
-
-# --- Scheduler
-def schedule_next_post():
-    global next_scheduled_time, next_scheduled_day
-
-    if random.random() < 0.9:
-        hour = random.randint(9, 11)
-    else:
-        hour = random.randint(13, 15)
-
-    minute = random.randint(0, 59)
-    scheduled_time = f"{hour:02d}:{minute:02d}"
-
-    now = datetime.now()
-    weekday = now.weekday()
-
-    if weekday in [0, 1, 2]:
-        next_day = "thursday"
-    elif weekday == 3 and now.hour < 12:
-        next_day = "thursday"
-    else:
-        next_day = "monday"
-
-    next_scheduled_time = scheduled_time
-    next_scheduled_day = next_day.capitalize()
-
-    print(f"📅 Next scheduled post: {next_scheduled_day} at {scheduled_time}")
-
-    if next_day == "monday":
-        schedule.every().monday.at(scheduled_time).do(post_and_reschedule)
-    else:
-        schedule.every().thursday.at(scheduled_time).do(post_and_reschedule)
-
-def post_and_reschedule():
-    job()
-    schedule.clear()
-    schedule_next_post()
-
-def run_scheduler():
-    print("📅 Scheduler with random times running...")
-    schedule_next_post()
-    while True:
-        schedule.run_pending()
-        time.sleep(30)
-
-# --- Keep Alive
-def keep_alive():
-    t = Thread(target=lambda: app.run(host='0.0.0.0', port=8080))
-    t.start()
-
-# --- Main
-if __name__ == "__main__":
-    keep_alive()
-    run_scheduler()
+# --- Save
