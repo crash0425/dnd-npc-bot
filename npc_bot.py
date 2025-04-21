@@ -28,7 +28,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # Volume every 2 NPCs
+NPCS_PER_VOLUME = 2  # Small for testing
 
 # --- Lore & Trivia
 TRIVIA_AND_LORE = [
@@ -184,9 +184,9 @@ def create_volume_pdf(volume_npcs, volume_number):
                     pdf.set_font("DejaVu", 'B', 18)
                     pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 else:
-                    pdf.set_x(15)  # <-- move left margin slightly
+                    pdf.set_x(15)  # <-- Final perfect margin
                     pdf.set_font("DejaVu", '', 14)
-                    pdf.multi_cell(180, 8, f"{label}: {content}")  # <-- 180 width
+                    pdf.multi_cell(180, 8, f"{label}: {content}")  # <-- Final width
             else:
                 pdf.set_x(15)
                 pdf.set_font("DejaVu", '', 12)
