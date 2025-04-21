@@ -28,7 +28,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # Adjust later after testing
+NPCS_PER_VOLUME = 2  # Testing value, adjust later
 
 # --- Lore & Trivia
 TRIVIA_AND_LORE = [
@@ -158,6 +158,15 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.add_page()
     pdf.image(cover_image_path, x=10, y=20, w=190)
 
+    # Add Fantasy NPC Forge Title Over Cover
+    pdf.set_font("DejaVu", 'B', 36)
+    pdf.set_text_color(255, 255, 255)  # White text
+    pdf.set_y(180)
+    pdf.cell(0, 20, "Fantasy NPC Forge", align='C')
+    pdf.set_font("DejaVu", '', 20)
+    pdf.cell(0, 20, f"Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_text_color(0, 0, 0)  # Reset back to black text
+
     # --- Title Page
     pdf.add_page()
     pdf.set_font("DejaVu", 'B', 32)
@@ -182,7 +191,7 @@ def create_volume_pdf(volume_npcs, volume_number):
 
                 if label.lower() in ["name", "race & class"]:
                     pdf.set_font("DejaVu", 'B', 18)
-                    pdf.set_x(18)  # <-- NEW FIX
+                    pdf.set_x(18)
                     pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 else:
                     pdf.set_x(18)
