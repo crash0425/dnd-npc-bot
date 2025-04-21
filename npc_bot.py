@@ -28,7 +28,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # Set to 2 for easier testing
+NPCS_PER_VOLUME = 2  # Volume after 2 NPCs
 
 # --- Lore & Trivia
 TRIVIA_AND_LORE = [
@@ -36,7 +36,7 @@ TRIVIA_AND_LORE = [
     "Trivia: Elves believe every tavern has a spirit guardian.",
     "Fun Fact: Gnomes invented sparkling mead during a lost festival.",
     "Battle Tale: The bravest warriors once dueled using only spoons!",
-    "Bard’s Wisdom: Every story has truth hidden between the lies.",
+    "Bard’s Wisdom: Every story has truth hidden between the lies!",
     "Did you know? The original D&D tavern was based on a real pub.",
     "Arcane Lore: Wizards often plant hidden portals inside taverns.",
     "Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
@@ -52,7 +52,7 @@ class PDF(FPDF):
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_y(-15)
-            self.set_font('DejaVu', 'I', 8)
+            self.set_font('DejaVu', '', 8)  # <-- Regular, no italic
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # --- Load DejaVu Fonts
@@ -102,7 +102,6 @@ def generate_npc():
 
     npc = response.choices[0].message.content.strip()
 
-    # --- Validate NPC is not empty
     if len(npc.splitlines()) < 4:
         print("⚠️ Warning: Empty or bad NPC generated. Skipping...")
         return None
@@ -152,8 +151,8 @@ def create_volume_pdf(volume_npcs, volume_number):
     # --- Build PDF
     output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
     load_fonts(pdf)
+    pdf.set_auto_page_break(auto=True, margin=15)
 
     # --- Cover Page
     pdf.add_page()
