@@ -51,9 +51,9 @@ class PDF(FPDF):
 
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
-           self.set_y(-15)
-           self.set_font('DejaVu', '', 8)
-           self.cell(0, 10, f"Page {self.page_no()}", align='C')
+            self.set_y(-15)
+            self.set_font('DejaVu', '', 8)
+            self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # --- Load DejaVu Fonts
 def load_fonts(pdf):
