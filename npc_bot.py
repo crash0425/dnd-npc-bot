@@ -25,10 +25,11 @@ next_scheduled_time = None
 next_scheduled_day = None
 VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 
-# --- Archive and Volume Settings
+# --- Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # Testing value, adjust later
+NPCS_PER_VOLUME = 2  # For testing, increase later
+PACK_THEME = "Tavern NPC Pack"  # <==== You can change theme here!
 
 # --- Lore & Trivia
 TRIVIA_AND_LORE = [
@@ -158,14 +159,19 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.add_page()
     pdf.image(cover_image_path, x=10, y=20, w=190)
 
-    # Add Fantasy NPC Forge Title Over Cover
-    pdf.set_font("DejaVu", 'B', 36)
     pdf.set_text_color(255, 255, 255)  # White text
-    pdf.set_y(180)
+    pdf.set_font("DejaVu", 'B', 36)
+    pdf.set_y(160)
     pdf.cell(0, 20, "Fantasy NPC Forge", align='C')
-    pdf.set_font("DejaVu", '', 20)
-    pdf.cell(0, 20, f"Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-    pdf.set_text_color(0, 0, 0)  # Reset back to black text
+
+    pdf.set_font("DejaVu", 'B', 24)
+    pdf.set_y(190)
+    pdf.cell(0, 15, PACK_THEME, align='C')
+
+    pdf.set_font("DejaVu", '', 18)
+    pdf.set_y(220)
+    pdf.cell(0, 10, f"Volume {volume_number}", align='C')
+    pdf.set_text_color(0, 0, 0)  # Reset back to black
 
     # --- Title Page
     pdf.add_page()
@@ -173,7 +179,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.cell(0, 80, "", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
     pdf.cell(0, 20, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
     pdf.set_font("DejaVu", '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.cell(0, 20, f"{PACK_THEME} - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
     # --- Add NPCs
     for npc in volume_npcs:
