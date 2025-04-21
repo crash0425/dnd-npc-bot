@@ -57,9 +57,9 @@ class PDF(FPDF):
 
 # --- Load DejaVu Fonts
 def load_fonts(pdf):
-    pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf')
-    pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf')
-    pdf.add_font('DejaVu', 'I', '/usr/share/fonts/truetype/dejavu/DejaVuSans-BoldOblique.ttf')  # use BoldOblique
+    pdf.add_font('DejaVu', '', 'DejaVuSans.ttf')
+    pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf')
+
 
 # --- Flask Routes
 @app.route('/')
