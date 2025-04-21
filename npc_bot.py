@@ -146,24 +146,29 @@ def create_volume_pdf(volume_npcs, volume_number):
     output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-    load_fonts(pdf)  # Load DejaVu fonts after creating PDF
+
+    # --- Load fonts
+    load_fonts(pdf)
 
     # --- Cover Page
     pdf.add_page()
-    pdf.image(cover_image_path, x=10, y=20, w=190)
+    pdf.image(cover_image_path, x=10, y=10, w=190)
 
     # --- Title Page
     pdf.add_page()
-    pdf.set_font("DejaVu", 'B', 32)
-    pdf.cell(0, 80, "", new_x=XPos.LMARGIN, new_y=YPos.NEXT)  # Spacer
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-    pdf.set_font("DejaVu", '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_font('DejaVu', 'B', 32)
+    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
+    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.set_font('DejaVu', '', 20)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.ln(20)
+    pdf.set_font('DejaVu', '', 14)
+    pdf.cell(0, 10, "Generated for Dungeon Masters Everywhere", new_x="LMARGIN", new_y="NEXT", align='C')
 
-    # --- Add NPCs
+    # --- NPCs Pages
     for npc in volume_npcs:
         pdf.add_page()
-        pdf.set_font("DejaVu", 'B', 20)
+        pdf.set_font('DejaVu', '', 14)
         lines = npc.splitlines()
 
         for idx, line in enumerate(lines):
@@ -173,20 +178,26 @@ def create_volume_pdf(volume_npcs, volume_number):
                 content = content.strip()
 
                 if label.lower() in ["name", "race & class"]:
-                    pdf.set_font("DejaVu", 'B', 18)
-                    pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    pdf.set_font('DejaVu', 'B', 16)
                 else:
-                    pdf.set_font("DejaVu", '', 14)
-                    pdf.multi_cell(190, 8, f"{label}: {content}")
+                    pdf.set_font('DejaVu', '', 14)
+
+                pdf.multi_cell(190, 8, f"{label}: {content}")
             else:
-                pdf.set_font("DejaVu", '', 12)
+                pdf.set_font('DejaVu', '', 14)
                 pdf.multi_cell(190, 8, line)
 
-        pdf.ln(10)
+        # --- Add Separator after each NPC
+        pdf.ln(5)
+        pdf.set_font('DejaVu', '', 16)
+        pdf.cell(0, 10, "⚔️", new_x="LMARGIN", new_y="NEXT", align="C")
+        pdf.ln(5)
 
     pdf.output(output_file)
 
     print(f"Volume {volume_number} PDF created!")
+
+    # --- Upload to Drive
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
 
