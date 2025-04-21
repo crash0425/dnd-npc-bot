@@ -152,20 +152,19 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     # --- Cover Page
     pdf.add_page()
-    pdf.image(cover_image_path, x=10, y=10, w=190)
+    pdf.image(cover_image_path, x=0, y=0, w=210, h=297)  # Full page cover
 
-    # --- Title Page
-    pdf.add_page()
-    pdf.set_font('DejaVu', 'B', 32)
-    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
-    pdf.set_font('DejaVu', '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
-    pdf.ln(20)
-    pdf.set_font('DejaVu', '', 14)
-    pdf.cell(0, 10, "Generated for Dungeon Masters Everywhere", new_x="LMARGIN", new_y="NEXT", align='C')
+    # --- Title Overlay (ON COVER IMAGE)
+    pdf.set_font('DejaVu', 'B', 40)
+    pdf.set_text_color(255, 255, 255)  # White text
+    pdf.set_y(100)
+    pdf.cell(0, 20, "Fantasy NPC Forge", align='C', new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font('DejaVu', '', 24)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", align='C')
 
-    # --- NPCs Pages
+    pdf.set_text_color(0, 0, 0)  # Reset text color to black
+
+    # --- NPCs
     for npc in volume_npcs:
         pdf.add_page()
         pdf.set_font('DejaVu', '', 14)
@@ -187,7 +186,7 @@ def create_volume_pdf(volume_npcs, volume_number):
                 pdf.set_font('DejaVu', '', 14)
                 pdf.multi_cell(190, 8, line)
 
-        # --- Add Separator after each NPC
+        # --- Separator
         pdf.ln(5)
         pdf.set_font('DejaVu', '', 16)
         pdf.cell(0, 10, "⚔️", new_x="LMARGIN", new_y="NEXT", align="C")
@@ -197,7 +196,6 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     print(f"Volume {volume_number} PDF created!")
 
-    # --- Upload to Drive
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
 
