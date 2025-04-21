@@ -28,7 +28,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # Small number for testing
+NPCS_PER_VOLUME = 2  # Volume every 2 NPCs
 
 # --- Lore & Trivia
 TRIVIA_AND_LORE = [
@@ -52,7 +52,7 @@ class PDF(FPDF):
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_y(-15)
-            self.set_font('DejaVu', '', 8)  # Regular font (no italic)
+            self.set_font('DejaVu', '', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # --- Load DejaVu Fonts
@@ -170,7 +170,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     for npc in volume_npcs:
         pdf.add_page()
         pdf.set_font("DejaVu", 'B', 20)
-        pdf.ln(20)  # Top space before NPC starts
+        pdf.ln(20)  # Top breathing room
 
         lines = npc.splitlines()
 
@@ -184,13 +184,13 @@ def create_volume_pdf(volume_npcs, volume_number):
                     pdf.set_font("DejaVu", 'B', 18)
                     pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 else:
-                    pdf.set_x(20)  # Indent body text
+                    pdf.set_x(15)  # <-- move left margin slightly
                     pdf.set_font("DejaVu", '', 14)
-                    pdf.multi_cell(170, 8, f"{label}: {content}")
+                    pdf.multi_cell(180, 8, f"{label}: {content}")  # <-- 180 width
             else:
-                pdf.set_x(20)
+                pdf.set_x(15)
                 pdf.set_font("DejaVu", '', 12)
-                pdf.multi_cell(170, 8, line)
+                pdf.multi_cell(180, 8, line)
 
         pdf.ln(10)
 
