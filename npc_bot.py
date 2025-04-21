@@ -30,7 +30,7 @@ ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
 NPCS_PER_VOLUME = 2  # Set to 2 for easier testing
 
-# --- Lore & Trivia (no emojis)
+# --- Lore & Trivia
 TRIVIA_AND_LORE = [
     "Lore Drop: In ancient taverns, tales were traded for ale!",
     "Trivia: Elves believe every tavern has a spirit guardian.",
@@ -52,14 +52,13 @@ class PDF(FPDF):
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_y(-15)
-            self.set_font('DejaVu', '', 8)
+            self.set_font('DejaVu', 'I', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # --- Load DejaVu Fonts
 def load_fonts(pdf):
     pdf.add_font('DejaVu', '', 'DejaVuSans.ttf')
     pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf')
-
 
 # --- Flask Routes
 @app.route('/')
@@ -100,7 +99,14 @@ def generate_npc():
         ],
         temperature=0.9
     )
+
     npc = response.choices[0].message.content.strip()
+
+    # --- Validate NPC is not empty
+    if len(npc.splitlines()) < 4:
+        print("⚠️ Warning: Empty or bad NPC generated. Skipping...")
+        return None
+
     save_npc(npc)
     return npc
 
@@ -114,7 +120,8 @@ def check_and_create_volume():
 
     with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
         content = f.read()
-    npcs = [npc.strip() for npc in content.split("---") if npc.strip()]
+
+    npcs = [npc.strip() for npc in content.split("---") if npc.strip() and len(npc.splitlines()) > 4]
 
     volume_number = len(npcs) // NPCS_PER_VOLUME
 
@@ -146,28 +153,24 @@ def create_volume_pdf(volume_npcs, volume_number):
     output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
-
-    # --- Load fonts
     load_fonts(pdf)
 
     # --- Cover Page
     pdf.add_page()
-    pdf.image(cover_image_path, x=0, y=0, w=210, h=297)  # Full page cover
+    pdf.image(cover_image_path, x=10, y=20, w=190)
 
-    # --- Title Overlay (ON COVER IMAGE)
-    pdf.set_font('DejaVu', 'B', 40)
-    pdf.set_text_color(255, 255, 255)  # White text
-    pdf.set_y(100)
-    pdf.cell(0, 20, "Fantasy NPC Forge", align='C', new_x="LMARGIN", new_y="NEXT")
-    pdf.set_font('DejaVu', '', 24)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", align='C')
+    # --- Title Page
+    pdf.add_page()
+    pdf.set_font("DejaVu", 'B', 32)
+    pdf.cell(0, 80, "", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.cell(0, 20, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_font("DejaVu", '', 20)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
 
-    pdf.set_text_color(0, 0, 0)  # Reset text color to black
-
-    # --- NPCs
+    # --- Add NPCs
     for npc in volume_npcs:
         pdf.add_page()
-        pdf.set_font('DejaVu', '', 14)
+        pdf.set_font("DejaVu", 'B', 20)
         lines = npc.splitlines()
 
         for idx, line in enumerate(lines):
@@ -177,25 +180,20 @@ def create_volume_pdf(volume_npcs, volume_number):
                 content = content.strip()
 
                 if label.lower() in ["name", "race & class"]:
-                    pdf.set_font('DejaVu', 'B', 16)
+                    pdf.set_font("DejaVu", 'B', 18)
+                    pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 else:
-                    pdf.set_font('DejaVu', '', 14)
-
-                pdf.multi_cell(190, 8, f"{label}: {content}")
+                    pdf.set_font("DejaVu", '', 14)
+                    pdf.multi_cell(190, 8, f"{label}: {content}")
             else:
-                pdf.set_font('DejaVu', '', 14)
+                pdf.set_font("DejaVu", '', 12)
                 pdf.multi_cell(190, 8, line)
 
-        # --- Separator
-        pdf.ln(5)
-        pdf.set_font('DejaVu', '', 16)
-        pdf.cell(0, 10, "⚔️", new_x="LMARGIN", new_y="NEXT", align="C")
-        pdf.ln(5)
+        pdf.ln(10)
 
     pdf.output(output_file)
 
     print(f"Volume {volume_number} PDF created!")
-
     shareable_link = upload_to_drive(output_file)
     print(f"Volume {volume_number} uploaded to Google Drive: {shareable_link}")
 
@@ -205,9 +203,11 @@ def job():
     print("Running scheduled job...")
 
     npc = generate_npc()
-    check_and_create_volume()
-
-    last_post_time = datetime.now()
+    if npc:
+        check_and_create_volume()
+        last_post_time = datetime.now()
+    else:
+        print("⚠️ Skipped bad NPC generation.")
 
 # --- Scheduler
 def run_scheduler():
