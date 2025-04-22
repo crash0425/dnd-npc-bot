@@ -83,9 +83,13 @@ def generate_npc():
     save_npc(npc)
     return npc
 
+# --- Bot Functions
 def save_npc(npc_text):
+    # --- Replace fancy apostrophes with normal ones
+    npc_text = npc_text.replace("’", "'").replace("“", '"').replace("”", '"')
     with open(ARCHIVE_FILE, "a", encoding="utf-8") as f:
         f.write(npc_text + "\n---\n")
+
 
 def check_and_create_volume():
     if not os.path.exists(VOLUME_FOLDER):
