@@ -1,5 +1,3 @@
-# --- FINAL PATCH: Facebook Post Cover Upload + Epic Text ---
-
 import os
 import time
 import random
@@ -11,7 +9,6 @@ from threading import Thread
 from dotenv import load_dotenv
 from datetime import datetime
 from fpdf import FPDF
-from fpdf.enums import XPos, YPos
 from gdrive_uploader import upload_to_drive
 from facebook_uploader import post_to_facebook
 
@@ -24,30 +21,25 @@ app = Flask(__name__)
 # --- Bot State
 bot_start_time = datetime.now()
 last_post_time = None
-next_scheduled_time = None
-next_scheduled_day = None
 VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 
-# --- Settings
+# --- Archive and Volume Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
 NPCS_PER_VOLUME = 10
-PACK_THEME = "Tavern NPC Pack"
-LANDING_PAGE_URL = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
-FB_PAGE_ID = os.getenv("FB_PAGE_ID")
-FB_PAGE_ACCESS_TOKEN = os.getenv("FB_PAGE_ACCESS_TOKEN")
+THEME = "Tavern Tales"  # Default theme
 
 # --- Helper Classes
 class PDF(FPDF):
     def header(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
-            self.set_font('DejaVu', 'B', 16)
-            self.cell(0, 10, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            self.set_font('Times', 'B', 16)
+            self.cell(0, 10, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT")
 
     def footer(self):
         if not hasattr(self, 'cover_page') or not self.cover_page:
             self.set_y(-15)
-            self.set_font('DejaVu', '', 8)
+            self.set_font('Times', 'I', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # --- Flask Routes
@@ -110,20 +102,14 @@ def check_and_create_volume():
     if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) > 0:
         volume_npcs = npcs[-NPCS_PER_VOLUME:]
         cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
-        shareable_link = upload_to_drive(pdf_path)
-
-        # Post to Facebook
-        post_text = f"New Volume Unlocked! \ud83d\udd2e\n\n{PACK_THEME} - Volume {volume_number}\n\n{LANDING_PAGE_URL}\n\nDownload Free:\n{shareable_link}"
-        post_to_facebook(cover_path, post_text)
-
-        print(f"Volume {volume_number} posted to Facebook!")
+        post_to_facebook(volume_number, THEME, cover_path, pdf_path)
 
 def create_volume_pdf(volume_npcs, volume_number):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     # --- Generate DALL-E Cover Art
     print("Generating DALL-E Cover Art...")
-    prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
+    prompt = f"Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
 
     image_response = client.images.generate(
         model="dall-e-3",
@@ -143,22 +129,21 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-    # --- Add Cover Page
+    # --- Cover Page
+    pdf.cover_page = True
     pdf.add_page()
-    pdf.image(cover_image_path, x=10, y=30, w=190)
-
-    # --- Title Page
-    pdf.add_page()
+    pdf.image(cover_image_path, x=10, y=20, w=190)
     pdf.set_font("Times", 'B', 32)
-    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 150, f"Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
     pdf.set_font("Times", '', 20)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 20, f"{THEME} - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
+
+    pdf.cover_page = False
 
     # --- Add NPCs
     for npc in volume_npcs:
         pdf.add_page()
-        pdf.set_font("Times", 'B', 20)
+        pdf.set_font("Times", '', 14)
         lines = npc.splitlines()
 
         for idx, line in enumerate(lines):
@@ -182,17 +167,16 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.output(output_file)
 
     print(f"Volume {volume_number} PDF created!")
-    return cover_image_path, output_file
+    upload_to_drive(output_file)
 
+    return cover_image_path, output_file
 
 # --- Bot Job
 def job():
     global last_post_time
     print("Running scheduled job...")
-
     generate_npc()
     check_and_create_volume()
-
     last_post_time = datetime.now()
 
 # --- Scheduler
