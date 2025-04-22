@@ -26,7 +26,7 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 10
+NPCS_PER_VOLUME = 2
 PACK_THEME = "Tavern NPC Pack"
 LANDING_PAGE_URL = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
 
