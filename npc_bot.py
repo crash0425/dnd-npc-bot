@@ -28,20 +28,8 @@ VERIFY_TOKEN = os.getenv("FB_VERIFY_TOKEN")
 # --- Settings
 ARCHIVE_FILE = "npc_archive.txt"
 VOLUME_FOLDER = "npc_volumes"
-NPCS_PER_VOLUME = 2  # For testing, increase later
-PACK_THEME = "Tavern NPC Pack"  # <==== You can change theme here!
-
-# --- Lore & Trivia
-TRIVIA_AND_LORE = [
-    "Lore Drop: In ancient taverns, tales were traded for ale!",
-    "Trivia: Elves believe every tavern has a spirit guardian.",
-    "Fun Fact: Gnomes invented sparkling mead during a lost festival.",
-    "Battle Tale: The bravest warriors once dueled using only spoons!",
-    "Bard’s Wisdom: Every story has truth hidden between the lies!",
-    "Did you know? The original D&D tavern was based on a real pub.",
-    "Arcane Lore: Wizards often plant hidden portals inside taverns.",
-    "Hero Fact: Legendary shields are sometimes auctioned in secret taverns.",
-]
+NPCS_PER_VOLUME = 2  # Test value
+PACK_THEME = "Tavern NPC Pack"
 
 # --- Helper Classes
 class PDF(FPDF):
@@ -56,7 +44,6 @@ class PDF(FPDF):
             self.set_font('DejaVu', '', 8)
             self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
-# --- Load DejaVu Fonts
 def load_fonts(pdf):
     pdf.add_font('DejaVu', '', 'DejaVuSans.ttf')
     pdf.add_font('DejaVu', 'B', 'DejaVuSans-Bold.ttf')
@@ -132,7 +119,6 @@ def check_and_create_volume():
 def create_volume_pdf(volume_npcs, volume_number):
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    # --- Generate DALL-E Cover Art
     print("Generating DALL-E Cover Art...")
     prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
 
@@ -161,16 +147,17 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     pdf.set_text_color(255, 255, 255)  # White text
     pdf.set_font("DejaVu", 'B', 36)
-    pdf.set_y(160)
+    pdf.set_y(150)
     pdf.cell(0, 20, "Fantasy NPC Forge", align='C')
 
     pdf.set_font("DejaVu", 'B', 24)
-    pdf.set_y(190)
+    pdf.set_y(185)
     pdf.cell(0, 15, PACK_THEME, align='C')
 
     pdf.set_font("DejaVu", '', 18)
-    pdf.set_y(220)
+    pdf.set_y(215)
     pdf.cell(0, 10, f"Volume {volume_number}", align='C')
+
     pdf.set_text_color(0, 0, 0)  # Reset back to black
 
     # --- Title Page
