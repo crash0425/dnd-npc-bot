@@ -123,7 +123,7 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     # --- Generate DALL-E Cover Art
     print("Generating DALL-E Cover Art...")
-    prompt = f"Epic fantasy tavern interior, warm lighting, cozy but grand, mysterious travelers, cinematic, vibrant colors"
+    prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed, vibrant colors"
 
     image_response = client.images.generate(
         model="dall-e-3",
@@ -139,32 +139,26 @@ def create_volume_pdf(volume_npcs, volume_number):
         f.write(image_data)
 
     # --- Build PDF
-    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")                                                                                     
+    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
     pdf.set_auto_page_break(auto=True, margin=15)
 
-# === PATCH: Load DejaVu fonts ===
-pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
-pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', uni=True)
-# ================================
-
-
-    # --- Cover Page
+    # --- Add Cover Page
     pdf.add_page()
-    pdf.image(cover_image_path, x=10, y=20, w=190)
+    pdf.image(cover_image_path, x=10, y=30, w=190)
 
     # --- Title Page
     pdf.add_page()
-    pdf.set_font("DejaVu", 'B', 24)
-    pdf.cell(0, 80, "", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-    pdf.set_font("DejaVu", '', 20)
-    pdf.cell(0, 20, f"{PACK_THEME} - Volume {volume_number}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+    pdf.set_font("Times", 'B', 32)
+    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")  # Spacer
+    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.set_font("Times", '', 20)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
 
     # --- Add NPCs
     for npc in volume_npcs:
         pdf.add_page()
-        pdf.set_font("DejaVu", 'B', 20)
+        pdf.set_font("Times", 'B', 20)
         lines = npc.splitlines()
 
         for idx, line in enumerate(lines):
@@ -174,13 +168,13 @@ pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.tt
                 content = content.strip()
 
                 if label.lower() in ["name", "race & class"]:
-                    pdf.set_font("DejaVu", 'B', 18)
-                    pdf.cell(0, 10, f"{label}: {content}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                    pdf.set_font("Times", 'B', 18)
+                    pdf.cell(0, 10, f"{label}: {content}", new_x="LMARGIN", new_y="NEXT")
                 else:
-                    pdf.set_font("DejaVu", '', 14)
+                    pdf.set_font("Times", '', 14)
                     pdf.multi_cell(190, 8, f"{label}: {content}")
             else:
-                pdf.set_font("DejaVu", '', 12)
+                pdf.set_font("Times", '', 12)
                 pdf.multi_cell(190, 8, line)
 
         pdf.ln(10)
@@ -189,6 +183,7 @@ pdf.add_font('DejaVu', 'B', '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.tt
 
     print(f"Volume {volume_number} PDF created!")
     return cover_image_path, output_file
+
 
 # --- Bot Job
 def job():
