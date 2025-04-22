@@ -139,9 +139,9 @@ def create_volume_pdf(volume_npcs, volume_number):
         f.write(image_data)
 
     # --- Build PDF
-    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
-  pdf = PDF()
-pdf.set_auto_page_break(auto=True, margin=15)
+    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")                                                                                     
+    pdf = PDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
 
 # === PATCH: Load DejaVu fonts ===
 pdf.add_font('DejaVu', '', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', uni=True)
