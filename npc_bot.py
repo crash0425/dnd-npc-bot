@@ -91,6 +91,7 @@ def create_volume_pdf(volume_npcs, volume_number):
     image_url = image_response.data[0].url
     image_data = requests.get(image_url).content
     cover_image_path = os.path.join(VOLUME_FOLDER, f"cover_volume{volume_number}.png")
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
     with open(cover_image_path, "wb") as f:
         f.write(image_data)
 
