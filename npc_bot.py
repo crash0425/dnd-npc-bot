@@ -2,6 +2,7 @@ import os
 import time
 import json
 import requests
+import logging
 from fpdf import FPDF
 from openai import OpenAI
 from flask import Flask
@@ -9,6 +10,9 @@ from threading import Thread
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
 VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
@@ -25,7 +29,7 @@ class PDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 def upload_to_drive(filepath):
-    print("\U0001F4C1 Preparing to upload to Google Drive...")
+    logging.info("Preparing to upload to Google Drive...")
     credentials_json = os.getenv('GOOGLE_CREDENTIALS')
     if not credentials_json:
         raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
@@ -41,11 +45,11 @@ def upload_to_drive(filepath):
         'parents': [GOOGLE_DRIVE_FOLDER_ID]
     }
     media = MediaFileUpload(filepath, mimetype='application/pdf')
-    print(f"\U0001F4C4 Uploading file: {filepath} to folder ID: {GOOGLE_DRIVE_FOLDER_ID}")
+    logging.info(f"Uploading file: {filepath} to folder ID: {GOOGLE_DRIVE_FOLDER_ID}")
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
     file_id = file.get('id')
     link = file.get('webViewLink')
-    print(f"✅ File uploaded: {link}")
+    logging.info(f"File uploaded: {link}")
 
     with open("upload_log.txt", "a") as log_file:
         log_file.write(f"{os.path.basename(filepath)} → {link}\n")
@@ -53,7 +57,7 @@ def upload_to_drive(filepath):
     return link
 
 def create_volume_pdf(volume_npcs, volume_number):
-    print("Generating cover image with OpenAI...")
+    logging.info("Generating cover image with OpenAI...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed"
@@ -103,16 +107,16 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.output(output_file)
 
     if not os.path.exists(output_file):
-        print(f"❌ PDF was not created at: {output_file}")
+        logging.error(f"PDF was not created at: {output_file}")
     else:
-        print(f"📄 Ready to upload: {output_file}")
+        logging.info(f"PDF ready to upload: {output_file}")
 
     drive_link = upload_to_drive(output_file)
-    print(f"✅ Uploaded to Google Drive: {drive_link}")
+    logging.info(f"Uploaded to Google Drive: {drive_link}")
     return cover_image_path, output_file
 
 def generate_npc():
-    print("Calling OpenAI to generate NPC...")
+    logging.info("Calling OpenAI to generate NPC...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
         model="gpt-4",
@@ -123,24 +127,24 @@ def generate_npc():
         temperature=0.8
     )
     npc_text = response.choices[0].message.content
-    print("Generated NPC:\n", npc_text)
+    logging.info(f"Generated NPC:\n{npc_text}")
     return npc_text
 
 def job():
-    print("Starting job...")
+    logging.info("Starting job...")
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
     volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
-    print(f"Creating Volume {volume_number}...")
+    logging.info(f"Creating Volume {volume_number}...")
     volume_npcs = [generate_npc() for _ in range(2)]
-    print("NPCs generated")
+    logging.info("NPCs generated")
     try:
         cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
         if os.path.exists(pdf_path):
-            print(f"✅ Generated Volume {volume_number}: {pdf_path}")
+            logging.info(f"Generated Volume {volume_number}: {pdf_path}")
         else:
-            print(f"❌ PDF not found: {pdf_path}")
+            logging.error(f"PDF not found: {pdf_path}")
     except Exception as e:
-        print("❌ ERROR DURING VOLUME GENERATION:", e)
+        logging.exception("Error during volume generation")
 
 app = Flask(__name__)
 
@@ -153,7 +157,7 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    job()
+    Thread(target=job).start()
     while True:
         time.sleep(2592000)  # 30 days
         job()
