@@ -91,24 +91,14 @@ def create_volume_pdf(volume_npcs, volume_number):
     return cover_image_path, output_file
 
 def generate_npc():
-    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-                {"role": "user", "content": "Generate a creative D&D NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
-            ],
-            temperature=0.9
-        )
-        npc_text = response.choices[0].message.content.strip()
-        print("✅ NPC Generated:", npc_text)
-        if not npc_text:
-            raise ValueError("NPC content is empty!")
-        return npc_text
-    except Exception as e:
-        print(f"❌ Failed to generate NPC: {e}")
-        return "Name: Error\nRace & Class: Unknown\nPersonality: Glitched\nQuirks: N/A\nBackstory: There was an error generating this NPC.\nIdeal: Survival\nBond: None\nFlaw: Corrupted"
+    return """Name: Thromgar Stonefist
+Race & Class: Dwarf Barbarian
+Personality: Gruff but loyal
+Quirks: Collects shiny rocks
+Backstory: Exiled from his clan for a drunken brawl
+Ideal: Redemption
+Bond: His long-lost brother
+Flaw: Can't resist a drinking challenge"""
 
 def job():
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
