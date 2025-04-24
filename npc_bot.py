@@ -7,7 +7,8 @@ from flask import Flask
 from threading import Thread
 
 VOLUME_FOLDER = "npc_volumes"
-FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+FONT_DIR = os.path.dirname(__file__)
+
 
 class PDF(FPDF):
     def header(self):
