@@ -77,13 +77,18 @@ def create_volume_pdf(volume_npcs, volume_number):
             safe_line = line.replace("’", "'").replace("–", "-").replace("“", '"').replace("”", '"')
             if ":" in safe_line:
                 label, content = safe_line.split(":", 1)
-                safe_text = f"{label.strip()}: {content.strip()}"
-                pdf.set_font("Helvetica", 'B' if label.lower() in ["name", "race & class"] else '', 14)
-                pdf.multi_cell(190, 8, safe_text)
+                label = label.strip()
+                content = content.strip()
+                if label.lower() in ["name", "race & class"]:
+                    pdf.set_font("Helvetica", 'B', 14)
+                else:
+                    pdf.set_font("Helvetica", '', 12)
+                pdf.cell(30, 8, f"{label}:", ln=0)
+                pdf.cell(0, 8, content, ln=1)
             else:
                 pdf.set_font("Helvetica", '', 12)
-                pdf.multi_cell(190, 8, safe_line)
-        pdf.ln(10)
+                pdf.multi_cell(0, 8, safe_line)
+        pdf.ln(5)
 
     pdf.output(output_file)
     drive_link = upload_to_drive(output_file)
