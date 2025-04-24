@@ -12,6 +12,7 @@ from google.oauth2 import service_account
 
 VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
+GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"  # Folder where PDFs will be saved
 
 class PDF(FPDF):
     def header(self):
@@ -27,14 +28,17 @@ def upload_to_drive(filepath):
     credentials_json = os.getenv('GOOGLE_CREDENTIALS')
     if not credentials_json:
         raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
-    
+
     credentials_info = json.loads(credentials_json)
     credentials = service_account.Credentials.from_service_account_info(
         credentials_info, scopes=SCOPES)
 
     service = build('drive', 'v3', credentials=credentials)
 
-    file_metadata = {'name': os.path.basename(filepath)}
+    file_metadata = {
+        'name': os.path.basename(filepath),
+        'parents': [GOOGLE_DRIVE_FOLDER_ID]
+    }
     media = MediaFileUpload(filepath, mimetype='application/pdf')
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
     return file.get('webViewLink')
