@@ -64,14 +64,15 @@ def create_volume_pdf(volume_npcs, volume_number):
         pdf.add_page()
         lines = npc.splitlines()
         for line in lines:
-            line = line.replace("’", "'")
-            if ":" in line:
-                label, content = line.split(":", 1)
+            safe_line = line.replace("’", "'").replace("–", "-").replace("“", '"').replace("”", '"')
+            if ":" in safe_line:
+                label, content = safe_line.split(":", 1)
+                safe_text = f"{label.strip()}: {content.strip()}"
                 pdf.set_font("Helvetica", 'B' if label.lower() in ["name", "race & class"] else '', 14)
-                pdf.multi_cell(190, 8, f"{label.strip()}: {content.strip()}")
+                pdf.multi_cell(190, 8, safe_text)
             else:
                 pdf.set_font("Helvetica", '', 12)
-                pdf.multi_cell(190, 8, line)
+                pdf.multi_cell(190, 8, safe_line)
         pdf.ln(10)
 
     pdf.output(output_file)
