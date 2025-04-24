@@ -12,6 +12,13 @@ from dotenv import load_dotenv
 from facebook_uploader import post_to_facebook
 from gdrive_uploader import upload_to_drive
 
+# ✅ Add this block right after imports
+if not os.path.exists("npc_volumes"):
+    os.makedirs("npc_volumes")
+
+if not os.path.exists("npc_archive.txt"):
+    with open("npc_archive.txt", "w", encoding="utf-8") as f:
+        f.write("")  # create an empty file
 # --- Load environment variables
 load_dotenv()
 
