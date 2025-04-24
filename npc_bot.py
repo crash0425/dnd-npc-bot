@@ -25,6 +25,7 @@ class PDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 def upload_to_drive(filepath):
+    print("\U0001F4C1 Preparing to upload to Google Drive...")
     credentials_json = os.getenv('GOOGLE_CREDENTIALS')
     if not credentials_json:
         raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
@@ -40,8 +41,16 @@ def upload_to_drive(filepath):
         'parents': [GOOGLE_DRIVE_FOLDER_ID]
     }
     media = MediaFileUpload(filepath, mimetype='application/pdf')
+    print(f"\U0001F4C4 Uploading file: {filepath} to folder ID: {GOOGLE_DRIVE_FOLDER_ID}")
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    return file.get('webViewLink')
+    file_id = file.get('id')
+    link = file.get('webViewLink')
+    print(f"✅ File uploaded: {link}")
+
+    with open("upload_log.txt", "a") as log_file:
+        log_file.write(f"{os.path.basename(filepath)} → {link}\n")
+
+    return link
 
 def create_volume_pdf(volume_npcs, volume_number):
     print("Generating cover image with OpenAI...")
