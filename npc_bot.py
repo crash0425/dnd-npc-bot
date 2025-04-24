@@ -92,15 +92,22 @@ def create_volume_pdf(volume_npcs, volume_number):
 
 def generate_npc():
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    response = client.chat.completions.create(
-        model="gpt-4",
-        messages=[
-            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
-            {"role": "user", "content": "Generate a creative D&D NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
-        ],
-        temperature=0.9
-    )
-    return response.choices[0].message.content.strip()
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
+                {"role": "user", "content": "Generate a creative D&D NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
+            ],
+            temperature=0.9
+        )
+        npc_text = response.choices[0].message.content.strip()
+        if not npc_text:
+            raise ValueError("NPC content is empty!")
+        return npc_text
+    except Exception as e:
+        print(f"❌ Failed to generate NPC: {e}")
+        return "Name: Error\nRace & Class: Unknown\nPersonality: Glitched\nQuirks: N/A\nBackstory: There was an error generating this NPC.\nIdeal: Survival\nBond: None\nFlaw: Corrupted"
 
 def job():
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
