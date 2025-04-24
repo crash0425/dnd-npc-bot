@@ -89,19 +89,28 @@ def create_volume_pdf(volume_npcs, volume_number):
         lines = npc.splitlines()
         for line in lines:
             safe_line = line.replace("’", "'").replace("–", "-").replace("“", '"').replace("”", '"')
+
             if ":" in safe_line:
                 label, content = safe_line.split(":", 1)
                 label = label.strip()
                 content = content.strip()
+
                 if label.lower() in ["name", "race & class"]:
                     pdf.set_font("Helvetica", 'B', 14)
                 else:
                     pdf.set_font("Helvetica", '', 12)
-                pdf.cell(50, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
-                pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
+
+                try:
+                    pdf.cell(50, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
+                    pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
+                except Exception as e:
+                    logging.warning(f"Skipping problematic line: {safe_line} | Error: {e}")
             else:
                 pdf.set_font("Helvetica", '', 12)
-                pdf.multi_cell(0, 8, safe_line)
+                try:
+                    pdf.multi_cell(0, 8, safe_line)
+                except Exception as e:
+                    logging.warning(f"Skipping problematic line: {safe_line} | Error: {e}")
         pdf.ln(5)
 
     pdf.output(output_file)
