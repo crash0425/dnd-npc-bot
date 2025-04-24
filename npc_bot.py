@@ -3,6 +3,8 @@ import time
 import requests
 from fpdf import FPDF
 from openai import OpenAI
+from flask import Flask
+from threading import Thread
 
 VOLUME_FOLDER = "npc_volumes"
 FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
@@ -82,10 +84,18 @@ def job():
     cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
     print(f"Generated Volume {volume_number} → {pdf_path}")
 
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return "NPC Bot is alive!"
+
+def keep_alive():
+    Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
+
 if __name__ == "__main__":
-    # Create first volume immediately upon deploy
+    keep_alive()
     job()
-    # Then wait 30 days between future jobs
     while True:
-        time.sleep(2592000)  # 30 days in seconds
+        time.sleep(2592000)  # 30 days
         job()
