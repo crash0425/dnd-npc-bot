@@ -95,26 +95,15 @@ def create_volume_pdf(volume_npcs, volume_number):
                 label = label.strip()
                 content = content.strip()
 
-                if len(content) < 150:
-                    try:
-                        pdf.set_font("Helvetica", 'B', 12)
-                        pdf.cell(30, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
-                        pdf.set_font("Helvetica", '', 12)
-                        pdf.cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
-                    except Exception as e:
-                        logging.warning(f"Skipping problematic line: {safe_line} | Error: {e}")
-                else:
-                    try:
-                        pdf.set_font("Helvetica", 'B', 12)
-                        pdf.multi_cell(0, 8, f"{label}:")
-                        pdf.set_font("Helvetica", '', 12)
-                        pdf.multi_cell(0, 8, content)
-                    except Exception as e:
-                        logging.warning(f"Skipping problematic line: {safe_line} | Error: {e}")
+                pdf.set_font("Helvetica", 'B', 12)
+                pdf.multi_cell(0, 8, f"{label}:", new_x="LMARGIN", new_y="NEXT")
+                pdf.set_font("Helvetica", '', 12)
+                pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
+                pdf.ln(2)
             else:
                 pdf.set_font("Helvetica", '', 12)
                 try:
-                    pdf.multi_cell(0, 8, safe_line)
+                    pdf.multi_cell(0, 8, safe_line, new_x="LMARGIN", new_y="NEXT")
                 except Exception as e:
                     logging.warning(f"Skipping line: {safe_line} | Error: {e}")
         pdf.ln(5)
