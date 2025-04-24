@@ -2,31 +2,33 @@ import os
 import time
 import random
 import requests
-import openai
 import schedule
+import openai
 from flask import Flask, request, redirect
 from threading import Thread
 from datetime import datetime
-from dotenv import load_dotenv
 from fpdf import FPDF
+from dotenv import load_dotenv
 from facebook_uploader import post_to_facebook
+from gdrive_uploader import upload_to_drive
 
 # --- Load environment variables
 load_dotenv()
 
 # --- Constants
-VOLUME_FOLDER = "npc_volumes"
 ARCHIVE_FILE = "npc_archive.txt"
-NPCS_PER_VOLUME = 10
-CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
+VOLUME_FOLDER = "npc_volumes"
 FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
+NPCS_PER_VOLUME = 10
 
-# --- Initialize Flask app
+# --- Flask setup
 app = Flask(__name__)
 bot_start_time = datetime.now()
 last_post_time = None
 
-# --- PDF Class
+# --- Facebook settings
+CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
+
 class PDF(FPDF):
     def header(self):
         self.set_font('DejaVu', 'B', 16)
@@ -37,7 +39,7 @@ class PDF(FPDF):
         self.set_font('DejaVu', '', 8)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
-# --- Helper Functions
+# --- Utility Functions
 def generate_npc():
     client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
@@ -48,9 +50,15 @@ def generate_npc():
         ],
         temperature=0.9
     )
-    return response.choices[0].message.content.strip()
+    npc = response.choices[0].message.content.strip()
+    save_npc(npc)
+    return npc
 
 def save_npc(npc_text):
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
+    if not os.path.exists(ARCHIVE_FILE):
+        with open(ARCHIVE_FILE, "w", encoding="utf-8") as f:
+            f.write("")
     with open(ARCHIVE_FILE, "a", encoding="utf-8") as f:
         f.write(npc_text + "\n---\n")
 
@@ -86,7 +94,7 @@ def create_volume_pdf(volume_npcs, volume_number):
         pdf.add_page()
         lines = npc.splitlines()
         for line in lines:
-            line = line.replace("’", "'")
+            line = line.replace("’", "'")  # Replace curly apostrophes
             if ":" in line:
                 label, content = line.split(":", 1)
                 pdf.set_font("DejaVu", 'B' if label.lower() in ["name", "race & class"] else '', 14)
@@ -102,31 +110,24 @@ def create_volume_pdf(volume_npcs, volume_number):
 def check_and_create_volume():
     if not os.path.exists(ARCHIVE_FILE):
         return
-
     with open(ARCHIVE_FILE, "r", encoding="utf-8") as f:
         content = f.read()
     npcs = [npc.strip() for npc in content.split("---") if npc.strip()]
-
     volume_number = len(npcs) // NPCS_PER_VOLUME
 
-    if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) > 0:
+    if len(npcs) % NPCS_PER_VOLUME == 0 and len(npcs) >= NPCS_PER_VOLUME:
         volume_npcs = npcs[-NPCS_PER_VOLUME:]
-        return create_volume_pdf(volume_npcs, volume_number)
-    return None, None
+        cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
+        post_text = f"📘 **Tavern NPC Pack - Volume {volume_number}**\nDiscover unique characters for your campaign!\nDownload this volume and unlock inspiration for your next session.\n\nGet more here: {CONVERTKIT_LINK}"
+        post_to_facebook(post_text, image_path=cover_path)
 
 # --- Bot Job
 def job():
     global last_post_time
-    print("Generating Volume...")
-    generated_npcs = [generate_npc() for _ in range(NPCS_PER_VOLUME)]
-    for npc in generated_npcs:
-        save_npc(npc)
-
-    cover_path, pdf_path = check_and_create_volume()
-    if cover_path:
-        caption = f"🎉 Tavern NPC Pack - Volume now available!\n\nDownload your NPCs here: 📩 {CONVERTKIT_LINK}\n#dnd #ttrpg #npc"
-        post_to_facebook(cover_path, caption)
-        last_post_time = datetime.now()
+    for _ in range(NPCS_PER_VOLUME):
+        generate_npc()
+    check_and_create_volume()
+    last_post_time = datetime.now()
 
 # --- Flask Routes
 @app.route('/')
@@ -135,17 +136,15 @@ def home():
     uptime = now - bot_start_time
     last_post = last_post_time.strftime("%Y-%m-%d %H:%M:%S") if last_post_time else "Never"
     return f'''
-    <html>
-    <head><title>NPC Bot Dashboard</title></head>
-    <body style="background:#121212;color:white;text-align:center;padding:40px;">
-        <h1>Fantasy NPC Forge Bot</h1>
-        <form action="/post-now" method="post">
-            <button style="padding:15px;font-size:18px;">Post New Volume Now</button>
-        </form>
-        <p><b>Uptime:</b> {str(uptime).split('.')[0]}</p>
-        <p><b>Last Post:</b> {last_post}</p>
-    </body>
-    </html>
+    <html><head><title>NPC Bot</title></head>
+    <body style="background-color:#111;color:white;text-align:center;padding:40px;">
+    <h1>Fantasy NPC Forge</h1>
+    <form action="/post-now" method="post">
+        <button style="padding:15px;font-size:18px;">📦 Post Volume Now</button>
+    </form>
+    <p><b>Bot Uptime:</b> {str(uptime).split('.')[0]}</p>
+    <p><b>Last Posted:</b> {last_post}</p>
+    </body></html>
     '''
 
 @app.route('/post-now', methods=['POST'])
@@ -153,6 +152,6 @@ def manual_post():
     Thread(target=job).start()
     return redirect("/")
 
-# --- Main Entrypoint
+# --- Main
 if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host="0.0.0.0", port=8080)
