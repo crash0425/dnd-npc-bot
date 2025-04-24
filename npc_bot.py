@@ -137,9 +137,9 @@ def generate_npc():
 def job():
     logging.info("Starting job...")
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
-    volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
+    volume_number = len([f for f in os.listdir(VOLUME_FOLDER) if f.endswith('.pdf')]) + 1
     logging.info(f"Creating Volume {volume_number}...")
-    volume_npcs = [generate_npc() for _ in range(2)]
+    volume_npcs = [generate_npc() for _ in range(10)]
     logging.info("NPCs generated")
     try:
         cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
@@ -161,7 +161,7 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    Thread(target=job).start()
+    job()  # Create Volume 1 immediately on deploy
     while True:
-        time.sleep(2592000)  # 30 days
+        time.sleep(2592000)  # Wait 30 days
         job()
