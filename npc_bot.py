@@ -102,6 +102,7 @@ def generate_npc():
             temperature=0.9
         )
         npc_text = response.choices[0].message.content.strip()
+        print("✅ NPC Generated:", npc_text)
         if not npc_text:
             raise ValueError("NPC content is empty!")
         return npc_text
@@ -112,7 +113,7 @@ def generate_npc():
 def job():
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
     volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
-    volume_npcs = [generate_npc() for _ in range(10)]
+    volume_npcs = [generate_npc() for _ in range(2)]
     cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
     print(f"Generated Volume {volume_number} → {pdf_path}")
 
