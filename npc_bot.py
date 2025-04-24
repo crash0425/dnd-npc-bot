@@ -44,6 +44,7 @@ def upload_to_drive(filepath):
     return file.get('webViewLink')
 
 def create_volume_pdf(volume_npcs, volume_number):
+    print("Generating cover image with OpenAI...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
     prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed"
@@ -83,8 +84,8 @@ def create_volume_pdf(volume_npcs, volume_number):
                     pdf.set_font("Helvetica", 'B', 14)
                 else:
                     pdf.set_font("Helvetica", '', 12)
-                pdf.cell(50, 8, f"{label}:", ln=0)
-                pdf.multi_cell(0, 8, content)
+                pdf.cell(50, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
+                pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
             else:
                 pdf.set_font("Helvetica", '', 12)
                 pdf.multi_cell(0, 8, safe_line)
@@ -92,10 +93,11 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     pdf.output(output_file)
     drive_link = upload_to_drive(output_file)
-    print(f"Uploaded to Google Drive: {drive_link}")
+    print(f"✅ Uploaded to Google Drive: {drive_link}")
     return cover_image_path, output_file
 
 def generate_npc():
+    print("Calling OpenAI to generate NPC...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     response = client.chat.completions.create(
         model="gpt-4",
@@ -110,11 +112,17 @@ def generate_npc():
     return npc_text
 
 def job():
+    print("Starting job...")
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
     volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
+    print(f"Creating Volume {volume_number}...")
     volume_npcs = [generate_npc() for _ in range(2)]
-    cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
-    print(f"Generated Volume {volume_number} → {pdf_path}")
+    print("NPCs generated")
+    try:
+        cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
+        print(f"✅ Generated Volume {volume_number}: {pdf_path}")
+    except Exception as e:
+        print("❌ ERROR DURING VOLUME GENERATION:", e)
 
 app = Flask(__name__)
 
