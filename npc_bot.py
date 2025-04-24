@@ -49,17 +49,22 @@ def post_now():
     return redirect('/')
 
 # --- NPC Generation
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from openai import OpenAI
+
 def generate_npc():
-    response = openai.ChatCompletion.create(
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": "You are a D&D NPC generator."},
+            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
             {"role": "user", "content": "Generate a creative D&D NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
         ],
         temperature=0.9
     )
-    return response.choices[0].message.content.strip()
+    npc = response.choices[0].message.content.strip()
+    save_npc(npc)
+    return npc
+
 
 def save_npc(npc_text):
     with open(ARCHIVE_FILE, "a", encoding="utf-8") as f:
