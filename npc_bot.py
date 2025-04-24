@@ -95,14 +95,11 @@ def create_volume_pdf(volume_npcs, volume_number):
                 label = label.strip()
                 content = content.strip()
 
-                if label.lower() in ["name", "race & class"]:
-                    pdf.set_font("Helvetica", 'B', 14)
-                else:
-                    pdf.set_font("Helvetica", '', 12)
-
                 try:
+                    pdf.set_font("Helvetica", 'B', 12)
                     pdf.cell(50, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
-                    pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
+                    pdf.set_font("Helvetica", '', 12)
+                    pdf.multi_cell(0, 8, content)
                 except Exception as e:
                     logging.warning(f"Skipping problematic line: {safe_line} | Error: {e}")
             else:
