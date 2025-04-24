@@ -10,18 +10,17 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 
 VOLUME_FOLDER = "npc_volumes"
-FONT_DIR = os.path.join(os.path.dirname(__file__), "fonts")
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 SERVICE_ACCOUNT_FILE = 'service_account.json'
 
 class PDF(FPDF):
     def header(self):
-        self.set_font('DejaVu', 'B', 16)
+        self.set_font('Helvetica', 'B', 16)
         self.cell(0, 10, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT")
 
     def footer(self):
         self.set_y(-15)
-        self.set_font('DejaVu', '', 8)
+        self.set_font('Helvetica', '', 8)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 def upload_to_drive(filepath):
@@ -49,18 +48,16 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
     pdf = PDF()
-    pdf.add_font('DejaVu', '', os.path.join(FONT_DIR, 'DejaVuSans.ttf'))
-    pdf.add_font('DejaVu', 'B', os.path.join(FONT_DIR, 'DejaVuSans-Bold.ttf'))
     pdf.set_auto_page_break(auto=True, margin=15)
 
     pdf.add_page()
     pdf.image(cover_image_path, x=10, y=20, w=190)
 
     pdf.add_page()
-    pdf.set_font("DejaVu", 'B', 24)
+    pdf.set_font("Helvetica", 'B', 24)
     pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")
     pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
-    pdf.set_font("DejaVu", '', 18)
+    pdf.set_font("Helvetica", '', 18)
     pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
 
     for npc in volume_npcs:
@@ -70,10 +67,10 @@ def create_volume_pdf(volume_npcs, volume_number):
             line = line.replace("’", "'")
             if ":" in line:
                 label, content = line.split(":", 1)
-                pdf.set_font("DejaVu", 'B' if label.lower() in ["name", "race & class"] else '', 14)
+                pdf.set_font("Helvetica", 'B' if label.lower() in ["name", "race & class"] else '', 14)
                 pdf.multi_cell(190, 8, f"{label.strip()}: {content.strip()}")
             else:
-                pdf.set_font("DejaVu", '', 12)
+                pdf.set_font("Helvetica", '', 12)
                 pdf.multi_cell(190, 8, line)
         pdf.ln(10)
 
