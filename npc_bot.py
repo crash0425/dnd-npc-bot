@@ -101,6 +101,12 @@ def create_volume_pdf(volume_npcs, volume_number):
         pdf.ln(5)
 
     pdf.output(output_file)
+
+    if not os.path.exists(output_file):
+        print(f"❌ PDF was not created at: {output_file}")
+    else:
+        print(f"📄 Ready to upload: {output_file}")
+
     drive_link = upload_to_drive(output_file)
     print(f"✅ Uploaded to Google Drive: {drive_link}")
     return cover_image_path, output_file
@@ -129,7 +135,10 @@ def job():
     print("NPCs generated")
     try:
         cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
-        print(f"✅ Generated Volume {volume_number}: {pdf_path}")
+        if os.path.exists(pdf_path):
+            print(f"✅ Generated Volume {volume_number}: {pdf_path}")
+        else:
+            print(f"❌ PDF not found: {pdf_path}")
     except Exception as e:
         print("❌ ERROR DURING VOLUME GENERATION:", e)
 
