@@ -1,4 +1,5 @@
 import os
+import time
 import requests
 from fpdf import FPDF
 from openai import OpenAI
@@ -49,7 +50,7 @@ def create_volume_pdf(volume_npcs, volume_number):
         pdf.add_page()
         lines = npc.splitlines()
         for line in lines:
-            line = line.replace("’", "'")  # Replace curly apostrophes
+            line = line.replace("’", "'")
             if ":" in line:
                 label, content = line.split(":", 1)
                 pdf.set_font("DejaVu", 'B' if label.lower() in ["name", "race & class"] else '', 14)
@@ -62,9 +63,29 @@ def create_volume_pdf(volume_npcs, volume_number):
     pdf.output(output_file)
     return cover_image_path, output_file
 
+def generate_npc():
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a creative Dungeons & Dragons NPC generator."},
+            {"role": "user", "content": "Generate a creative D&D NPC with:\nName\nRace & Class\nPersonality\nQuirks\nBackstory\nIdeal\nBond\nFlaw"}
+        ],
+        temperature=0.9
+    )
+    return response.choices[0].message.content.strip()
+
 def job():
-    os.makedirs(VOLUME_FOLDER, exist_ok=True)  # Ensure folder exists before listing
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
     volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
     volume_npcs = [generate_npc() for _ in range(10)]
     cover_path, pdf_path = create_volume_pdf(volume_npcs, volume_number)
     print(f"Generated Volume {volume_number} → {pdf_path}")
+
+if __name__ == "__main__":
+    # Create first volume immediately upon deploy
+    job()
+    # Then wait 30 days between future jobs
+    while True:
+        time.sleep(2592000)  # 30 days in seconds
+        job()
