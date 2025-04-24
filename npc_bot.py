@@ -83,8 +83,8 @@ def create_volume_pdf(volume_npcs, volume_number):
                     pdf.set_font("Helvetica", 'B', 14)
                 else:
                     pdf.set_font("Helvetica", '', 12)
-                pdf.cell(30, 8, f"{label}:", ln=0)
-                pdf.cell(0, 8, content, ln=1)
+                pdf.cell(30, 8, f"{label}:", new_x="RIGHT", new_y="TOP")
+                pdf.cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
             else:
                 pdf.set_font("Helvetica", '', 12)
                 pdf.multi_cell(0, 8, safe_line)
@@ -96,14 +96,18 @@ def create_volume_pdf(volume_npcs, volume_number):
     return cover_image_path, output_file
 
 def generate_npc():
-    return """Name: Thromgar Stonefist
-Race & Class: Dwarf Barbarian
-Personality: Gruff but loyal
-Quirks: Collects shiny rocks
-Backstory: Exiled from his clan for a drunken brawl
-Ideal: Redemption
-Bond: His long-lost brother
-Flaw: Can't resist a drinking challenge"""
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    response = client.chat.completions.create(
+        model="gpt-4",
+        messages=[
+            {"role": "system", "content": "You are a fantasy NPC generator for a Dungeons & Dragons campaign."},
+            {"role": "user", "content": "Generate a detailed NPC with the following fields: Name, Race & Class, Personality, Quirks, Backstory, Ideal, Bond, Flaw. Format with line breaks and labels."}
+        ],
+        temperature=0.8
+    )
+    npc_text = response.choices[0].message.content
+    print("Generated NPC:\n", npc_text)
+    return npc_text
 
 def job():
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
