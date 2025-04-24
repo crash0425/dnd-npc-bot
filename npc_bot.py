@@ -1,5 +1,6 @@
 import os
 import time
+import json
 import requests
 from fpdf import FPDF
 from openai import OpenAI
@@ -11,7 +12,6 @@ from google.oauth2 import service_account
 
 VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-SERVICE_ACCOUNT_FILE = 'service_account.json'
 
 class PDF(FPDF):
     def header(self):
@@ -24,8 +24,14 @@ class PDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 def upload_to_drive(filepath):
-    credentials = service_account.Credentials.from_service_account_file(
-        SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+    credentials_json = os.getenv('GOOGLE_CREDENTIALS')
+    if not credentials_json:
+        raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
+    
+    credentials_info = json.loads(credentials_json)
+    credentials = service_account.Credentials.from_service_account_info(
+        credentials_info, scopes=SCOPES)
+
     service = build('drive', 'v3', credentials=credentials)
 
     file_metadata = {'name': os.path.basename(filepath)}
