@@ -156,7 +156,18 @@ def seed_initial_npcs(count=5):
     logging.info("Seeding complete.")
 
 def post_to_facebook(text):
-    logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
+    page_id = os.getenv("FACEBOOK_PAGE_ID")
+    access_token = os.getenv("FACEBOOK_ACCESS_TOKEN")
+    url = f"https://graph.facebook.com/{page_id}/feed"
+    payload = {
+        "message": text,
+        "access_token": access_token
+    }
+    response = requests.post(url, data=payload)
+    if response.status_code == 200:
+        logging.info("✅ Facebook post successful")
+    else:
+        logging.error(f"❌ Facebook post failed: {response.text}")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
@@ -206,6 +217,7 @@ if __name__ == "__main__":
     keep_alive()
     seed_initial_npcs(5)
     Thread(target=volume_and_then_post).start()
+    post_weekly_npc()  # ← test post trigger
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
     schedule.every(30).days.do(job)
