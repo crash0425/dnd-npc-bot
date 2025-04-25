@@ -1,1 +1,37 @@
+import os
+import time
+import logging
+import facebook
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
+
+# Facebook setup
+ACCESS_TOKEN = os.getenv("FACEBOOK_PAGE_TOKEN")
+PAGE_ID = os.getenv("FACEBOOK_PAGE_ID")
+CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
+
+MESSAGE = (
+    "**Volume 1 of Fantasy NPC Forge is out!**\n\n"
+    "Grab your FREE NPC PDF now and bring your tavern scenes to life!\n\n"
+    f"Claim here: {CONVERTKIT_LINK}"
+)
+
+def post_to_facebook():
+    try:
+        graph = facebook.GraphAPI(access_token=ACCESS_TOKEN)
+        graph.put_object(parent_object=PAGE_ID, connection_name='feed', message=MESSAGE)
+        logging.info("Posted Volume 1 CTA to Facebook.")
+    except Exception as e:
+        logging.error(f"Failed to post to Facebook: {e}")
+
+if __name__ == "__main__":
+    while True:
+        post_to_facebook()
+        logging.info("Waiting 7 days for the next post...")
+        time.sleep(604800)  # 7 days
 
