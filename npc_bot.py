@@ -185,7 +185,8 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    Thread(target=job).start()
+    Thread(target=job).start()  # Trigger volume generation on startup
+    post_weekly_npc()  # Temporary manual test trigger
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
 
