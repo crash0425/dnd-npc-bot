@@ -16,7 +16,8 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(mes
 
 VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"  # Folder where PDFs will be saved
+GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
+CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
 
 class PDF(FPDF):
     def header(self):
@@ -47,7 +48,6 @@ def upload_to_drive(filepath):
     media = MediaFileUpload(filepath, mimetype='application/pdf')
     logging.info(f"Uploading file: {filepath} to folder ID: {GOOGLE_DRIVE_FOLDER_ID}")
     file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    file_id = file.get('id')
     link = file.get('webViewLink')
     logging.info(f"File uploaded: {link}")
 
@@ -137,7 +137,7 @@ def generate_npc():
 def job():
     logging.info("Starting job...")
     os.makedirs(VOLUME_FOLDER, exist_ok=True)
-    volume_number = len([f for f in os.listdir(VOLUME_FOLDER) if f.endswith('.pdf')]) + 1
+    volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
     logging.info(f"Creating Volume {volume_number}...")
     volume_npcs = [generate_npc() for _ in range(10)]
     logging.info("NPCs generated")
@@ -161,7 +161,9 @@ def keep_alive():
 
 if __name__ == "__main__":
     keep_alive()
-    job()  # Create Volume 1 immediately on deploy
+    Thread(target=job).start()
+
     while True:
+        logging.info("Waiting for next volume in 30 days...")
         time.sleep(2592000)  # Wait 30 days
         job()
