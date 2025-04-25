@@ -142,6 +142,8 @@ def generate_npc():
     )
     npc_text = response.choices[0].message.content
     logging.info(f"Generated NPC:\n{npc_text}")
+    if not os.path.exists(ARCHIVE_FILE):
+        with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
         f.write(npc_text + "\n---\n")
     return npc_text
@@ -156,7 +158,6 @@ def seed_initial_npcs(count=5):
 def post_to_facebook(text):
     logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
 
-
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
     if not os.path.exists(ARCHIVE_FILE):
@@ -165,8 +166,8 @@ def post_weekly_npc():
     with open(ARCHIVE_FILE, "r") as f:
         npcs = f.read().split("---")
     if npcs:
-        npc = random.choice(npcs).strip()
-        post_text = f"🧙 New NPC from Fantasy NPC Forge!\n\n{npc}\n\n📥 Download Volume 1 free and grow your campaign: {CONVERTKIT_LINK}"
+        npc = random.choice([x for x in npcs if x.strip()])
+        post_text = f"🧙 New NPC from Fantasy NPC Forge!\n\n{npc.strip()}\n\n📥 Download Volume 1 free and grow your campaign: {CONVERTKIT_LINK}"
         post_to_facebook(post_text)
     else:
         logging.warning("No NPCs found in archive.")
@@ -198,6 +199,7 @@ def keep_alive():
 
 def volume_and_then_post():
     job()
+    time.sleep(5)
     post_weekly_npc()
 
 if __name__ == "__main__":
@@ -206,6 +208,7 @@ if __name__ == "__main__":
     Thread(target=volume_and_then_post).start()
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
+    schedule.every(30).days.do(job)
 
     while True:
         schedule.run_pending()
