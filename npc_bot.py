@@ -92,7 +92,13 @@ def create_volume_pdf(volume_npcs, volume_number):
         pdf.add_page()
         lines = npc.splitlines()
         for line in lines:
-            safe_line = line.replace("’", "'").replace("–", "-").replace("“", '"').replace("”", '"')
+            safe_line = (line.replace("’", "'")
+                              .replace("–", "-")
+                              .replace("“", '"')
+                              .replace("”", '"')
+                              .replace("…", "...")
+                              .replace("•", "-")
+                              .replace("̈", ""))  # Remove combining diaeresis
 
             if ":" in safe_line:
                 label, content = safe_line.split(":", 1)
@@ -183,10 +189,13 @@ def home():
 def keep_alive():
     Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
+def volume_and_then_post():
+    job()  # generate volume first
+    post_weekly_npc()  # then try to post
+
 if __name__ == "__main__":
     keep_alive()
-    Thread(target=job).start()  # Trigger volume generation on startup
-    post_weekly_npc()  # Temporary manual test trigger
+    Thread(target=volume_and_then_post).start()  # Run on deploy
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
 
