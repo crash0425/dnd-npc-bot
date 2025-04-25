@@ -98,7 +98,7 @@ def create_volume_pdf(volume_npcs, volume_number):
                               .replace("”", '"')
                               .replace("…", "...")
                               .replace("•", "-")
-                              .replace("̈", ""))  # Remove combining diaeresis
+                              .replace("̈", ""))
 
             if ":" in safe_line:
                 label, content = safe_line.split(":", 1)
@@ -146,9 +146,16 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
+def seed_initial_npcs(count=5):
+    logging.info(f"Seeding {count} initial NPCs...")
+    for _ in range(count):
+        generate_npc()
+        time.sleep(1)
+    logging.info("Seeding complete.")
+
 def post_to_facebook(text):
     logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
-    # Here you'd use Facebook's API to actually post
+
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
@@ -190,12 +197,13 @@ def keep_alive():
     Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
 
 def volume_and_then_post():
-    job()  # generate volume first
-    post_weekly_npc()  # then try to post
+    job()
+    post_weekly_npc()
 
 if __name__ == "__main__":
     keep_alive()
-    Thread(target=volume_and_then_post).start()  # Run on deploy
+    seed_initial_npcs(5)
+    Thread(target=volume_and_then_post).start()
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
 
