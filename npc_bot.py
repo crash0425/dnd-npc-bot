@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import random
 import requests
 import logging
 from fpdf import FPDF
@@ -10,6 +11,8 @@ from threading import Thread
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
+from datetime import datetime
+import schedule
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -18,6 +21,7 @@ VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
 CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
+ARCHIVE_FILE = "npc_archive.txt"
 
 class PDF(FPDF):
     def header(self):
@@ -132,7 +136,27 @@ def generate_npc():
     )
     npc_text = response.choices[0].message.content
     logging.info(f"Generated NPC:\n{npc_text}")
+    with open(ARCHIVE_FILE, "a") as f:
+        f.write(npc_text + "\n---\n")
     return npc_text
+
+def post_to_facebook(text):
+    logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
+    # Here you'd use Facebook's API to actually post
+
+def post_weekly_npc():
+    logging.info("Weekly NPC Post Task Started")
+    if not os.path.exists(ARCHIVE_FILE):
+        logging.warning("Archive file not found.")
+        return
+    with open(ARCHIVE_FILE, "r") as f:
+        npcs = f.read().split("---")
+    if npcs:
+        npc = random.choice(npcs).strip()
+        post_text = f"🧙 New NPC from Fantasy NPC Forge!\n\n{npc}\n\n📥 Download Volume 1 free and grow your campaign: {CONVERTKIT_LINK}"
+        post_to_facebook(post_text)
+    else:
+        logging.warning("No NPCs found in archive.")
 
 def job():
     logging.info("Starting job...")
@@ -162,8 +186,9 @@ def keep_alive():
 if __name__ == "__main__":
     keep_alive()
     Thread(target=job).start()
+    schedule.every().monday.at("10:00").do(post_weekly_npc)
+    schedule.every().thursday.at("10:00").do(post_weekly_npc)
 
     while True:
-        logging.info("Waiting for next volume in 30 days...")
-        time.sleep(2592000)  # Wait 30 days
-        job()
+        schedule.run_pending()
+        time.sleep(60)
