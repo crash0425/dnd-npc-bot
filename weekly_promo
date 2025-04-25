@@ -18,7 +18,7 @@ CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
 MESSAGE = (
     "**Volume 1 of Fantasy NPC Forge is out!**\n\n"
     "Grab your FREE NPC PDF now and bring your tavern scenes to life!\n\n"
-    f"Claim here: {CONVERTKIT_LINK}"
+    f"Claim here: {https://fantasy-npc-forge.kit.com/2aa9c10f01e}"
 )
 
 def post_to_facebook():
