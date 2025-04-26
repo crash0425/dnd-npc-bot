@@ -26,7 +26,7 @@ ARCHIVE_FILE = "npc_archive.txt"
 class PDF(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT")
+        self.cell(0, 10, "Fantasy NPC Forge", ln=True)
 
     def footer(self):
         self.set_y(-15)
@@ -83,10 +83,10 @@ def create_volume_pdf(volume_npcs, volume_number):
 
     pdf.add_page()
     pdf.set_font("Helvetica", 'B', 24)
-    pdf.cell(0, 80, "", new_x="LMARGIN", new_y="NEXT")
-    pdf.cell(0, 20, "Fantasy NPC Forge", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 80, "", ln=True)
+    pdf.cell(0, 20, "Fantasy NPC Forge", ln=True, align='C')
     pdf.set_font("Helvetica", '', 18)
-    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", new_x="LMARGIN", new_y="NEXT", align='C')
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
 
     for npc in volume_npcs:
         pdf.add_page()
@@ -106,14 +106,14 @@ def create_volume_pdf(volume_npcs, volume_number):
                 content = content.strip()
 
                 pdf.set_font("Helvetica", 'B', 12)
-                pdf.multi_cell(0, 8, f"{label}:", new_x="LMARGIN", new_y="NEXT")
+                pdf.multi_cell(0, 8, f"{label}:")
                 pdf.set_font("Helvetica", '', 12)
-                pdf.multi_cell(0, 8, content, new_x="LMARGIN", new_y="NEXT")
+                pdf.multi_cell(0, 8, content)
                 pdf.ln(2)
             else:
                 pdf.set_font("Helvetica", '', 12)
                 try:
-                    pdf.multi_cell(0, 8, safe_line, new_x="LMARGIN", new_y="NEXT")
+                    pdf.multi_cell(0, 8, safe_line)
                 except Exception as e:
                     logging.warning(f"Skipping line: {safe_line} | Error: {e}")
         pdf.ln(5)
@@ -206,6 +206,11 @@ app = Flask(__name__)
 @app.route('/')
 def home():
     return "NPC Bot is alive!"
+
+@app.route('/post-test')
+def post_test():
+    Thread(target=post_weekly_npc).start()
+    return "Triggered a manual Twitter post!"
 
 def keep_alive():
     Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
