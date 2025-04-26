@@ -13,7 +13,6 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
-import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -23,15 +22,6 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
 CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
 ARCHIVE_FILE = "npc_archive.txt"
-
-# Twitter API auth
-TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
-TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
-TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
-TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
-
-auth = tweepy.OAuth1UserHandler(TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET)
-twitter_api = tweepy.API(auth)
 
 class PDF(FPDF):
     def header(self):
@@ -158,15 +148,28 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-def post_to_facebook(text):
-    logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
-
 def post_to_twitter(text):
+    logging.info("Attempting to post to Twitter (v2)...")
     try:
-        twitter_api.update_status(status=text[:280])
-        logging.info("✅ Posted to Twitter")
+        bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        tweet_data = {
+            "text": text[:280]
+        }
+        response = requests.post(
+            "https://api.twitter.com/2/tweets",
+            headers=headers,
+            json=tweet_data
+        )
+        if response.status_code == 201 or response.status_code == 200:
+            logging.info("✅ Tweet posted successfully.")
+        else:
+            logging.error(f"❌ Failed to post tweet: {response.status_code} {response.text}")
     except Exception as e:
-        logging.error(f"❌ Twitter post failed: {e}")
+        logging.exception("❌ Twitter v2 post failed.")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
