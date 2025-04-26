@@ -1,10 +1,9 @@
-flask
-schedule
-requests
 openai
-python-dotenv
-fpdf2
+fpdf
+Flask
 google-api-python-client
 google-auth
-google-auth-httplib2
 google-auth-oauthlib
+requests
+tweepy
+schedule
