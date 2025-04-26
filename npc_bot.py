@@ -13,7 +13,6 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
-import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -150,21 +149,31 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
-    logging.info("Attempting to post to Twitter (OAuth1)...")
+    logging.info("Attempting to post to Twitter (v2)...")
     try:
-        api_key = os.getenv("TWITTER_API_KEY")
-        api_secret = os.getenv("TWITTER_API_SECRET")
-        access_token = os.getenv("TWITTER_ACCESS_TOKEN")
-        access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+        bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+        if not bearer_token:
+            raise ValueError("TWITTER_BEARER_TOKEN environment variable missing!")
 
-        auth = tweepy.OAuthHandler(api_key, api_secret)
-        auth.set_access_token(access_token, access_token_secret)
-        api = tweepy.API(auth)
+        headers = {
+            "Authorization": f"Bearer {bearer_token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "text": text[:280]
+        }
+        response = requests.post(
+            "https://api.twitter.com/2/tweets",
+            headers=headers,
+            json=payload
+        )
 
-        api.update_status(status=text[:280])
-        logging.info("✅ Tweet posted successfully.")
+        if response.status_code == 201:
+            logging.info("✅ Tweet posted successfully (v2)!")
+        else:
+            logging.error(f"❌ Twitter post failed: {response.status_code} {response.text}")
     except Exception as e:
-        logging.exception("❌ Twitter post failed.")
+        logging.exception("❌ Unexpected error posting to Twitter")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
