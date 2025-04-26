@@ -149,27 +149,20 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
-    logging.info("Attempting to post to Twitter (v2)...")
+    logging.info("Attempting to post to Twitter (OAuth1)...")
     try:
-        bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
-        headers = {
-            "Authorization": f"Bearer {bearer_token}",
-            "Content-Type": "application/json"
-        }
-        tweet_data = {
-            "text": text[:280]
-        }
-        response = requests.post(
-            "https://api.twitter.com/2/tweets",
-            headers=headers,
-            json=tweet_data
-        )
-        if response.status_code == 201 or response.status_code == 200:
-            logging.info("✅ Tweet posted successfully.")
-        else:
-            logging.error(f"❌ Failed to post tweet: {response.status_code} {response.text}")
+        api_key = os.getenv("TWITTER_API_KEY")
+        api_secret = os.getenv("TWITTER_API_SECRET")
+        access_token = os.getenv("TWITTER_ACCESS_TOKEN")
+        access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+
+        auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_token_secret)
+        api = tweepy.API(auth)
+
+        api.update_status(status=text[:280])
+        logging.info("✅ Tweet posted successfully.")
     except Exception as e:
-        logging.exception("❌ Twitter v2 post failed.")
+        logging.exception("❌ Twitter post failed.")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
