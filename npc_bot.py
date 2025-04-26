@@ -13,6 +13,7 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
+import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -22,6 +23,15 @@ SCOPES = ['https://www.googleapis.com/auth/drive.file']
 GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
 CONVERTKIT_LINK = "https://fantasy-npc-forge.kit.com/2aa9c10f01"
 ARCHIVE_FILE = "npc_archive.txt"
+
+# Twitter API auth
+TWITTER_API_KEY = os.getenv("TWITTER_API_KEY")
+TWITTER_API_SECRET = os.getenv("TWITTER_API_SECRET")
+TWITTER_ACCESS_TOKEN = os.getenv("TWITTER_ACCESS_TOKEN")
+TWITTER_ACCESS_SECRET = os.getenv("TWITTER_ACCESS_SECRET")
+
+auth = tweepy.OAuth1UserHandler(TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET)
+twitter_api = tweepy.API(auth)
 
 class PDF(FPDF):
     def header(self):
@@ -148,26 +158,15 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-def seed_initial_npcs(count=5):
-    logging.info(f"Seeding {count} initial NPCs...")
-    for _ in range(count):
-        generate_npc()
-        time.sleep(1)
-    logging.info("Seeding complete.")
-
 def post_to_facebook(text):
-    page_id = os.getenv("FACEBOOK_PAGE_ID")
-    access_token = os.getenv("FACEBOOK_ACCESS_TOKEN")
-    url = f"https://graph.facebook.com/{page_id}/feed"
-    payload = {
-        "message": text,
-        "access_token": access_token
-    }
-    response = requests.post(url, data=payload)
-    if response.status_code == 200:
-        logging.info("✅ Facebook post successful")
-    else:
-        logging.error(f"❌ Facebook post failed: {response.text}")
+    logging.info(f"[SIMULATED POST] Posting to Facebook:\n{text}\n")
+
+def post_to_twitter(text):
+    try:
+        twitter_api.update_status(status=text[:280])
+        logging.info("✅ Posted to Twitter")
+    except Exception as e:
+        logging.error(f"❌ Twitter post failed: {e}")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
@@ -179,7 +178,7 @@ def post_weekly_npc():
     if npcs:
         npc = random.choice([x for x in npcs if x.strip()])
         post_text = f"🧙 New NPC from Fantasy NPC Forge!\n\n{npc.strip()}\n\n📥 Download Volume 1 free and grow your campaign: {CONVERTKIT_LINK}"
-        post_to_facebook(post_text)
+        post_to_twitter(post_text)
     else:
         logging.warning("No NPCs found in archive.")
 
@@ -215,9 +214,7 @@ def volume_and_then_post():
 
 if __name__ == "__main__":
     keep_alive()
-    seed_initial_npcs(5)
     Thread(target=volume_and_then_post).start()
-    post_weekly_npc()  # ← test post trigger
     schedule.every().monday.at("10:00").do(post_weekly_npc)
     schedule.every().thursday.at("10:00").do(post_weekly_npc)
     schedule.every(30).days.do(job)
