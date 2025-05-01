@@ -13,6 +13,7 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
+import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -149,6 +150,9 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
+    """
+    Posts a tweet to Twitter using Tweepy with OAuth 1.0a
+    """
     logging.info("Attempting to post to Twitter (OAuth1)...")
     try:
         api_key = os.getenv("TWITTER_API_KEY")
@@ -156,16 +160,15 @@ def post_to_twitter(text):
         access_token = os.getenv("TWITTER_ACCESS_TOKEN")
         access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
+        if not all([api_key, api_secret, access_token, access_token_secret]):
+            logging.warning("One or more Twitter environment variables are missing!")
+            return
+
         logging.info(f"TWITTER_API_KEY: {api_key}")
         logging.info(f"TWITTER_API_SECRET: {api_secret}")
         logging.info(f"TWITTER_ACCESS_TOKEN: {access_token}")
         logging.info(f"TWITTER_ACCESS_TOKEN_SECRET: {access_token_secret}")
 
-        if not all([api_key, api_secret, access_token, access_token_secret]):
-            logging.warning("One or more Twitter environment variables are missing!")
-            return
-
-        import tweepy
         auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_token_secret)
         api = tweepy.API(auth)
 
