@@ -13,12 +13,10 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
-import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 
-# Constants
 VOLUME_FOLDER = "npc_volumes"
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
 GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
@@ -39,8 +37,7 @@ def upload_to_drive(filepath):
     logging.info("Preparing to upload to Google Drive...")
     credentials_json = os.getenv('GOOGLE_CREDENTIALS')
     if not credentials_json:
-        logging.warning("GOOGLE_CREDENTIALS environment variable not found!")
-        return None
+        raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
 
     credentials_info = json.loads(credentials_json)
     credentials = service_account.Credentials.from_service_account_info(
@@ -129,8 +126,7 @@ def create_volume_pdf(volume_npcs, volume_number):
         logging.info(f"PDF ready to upload: {output_file}")
 
     drive_link = upload_to_drive(output_file)
-    if drive_link:
-        logging.info(f"Uploaded to Google Drive: {drive_link}")
+    logging.info(f"Uploaded to Google Drive: {drive_link}")
     return cover_image_path, output_file
 
 def generate_npc():
@@ -153,12 +149,6 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
-    """
-    Posts a tweet to Twitter using Tweepy.
-
-    Args:
-        text (str): The content of the tweet to be posted.
-    """
     logging.info("Attempting to post to Twitter (OAuth1)...")
     try:
         api_key = os.getenv("TWITTER_API_KEY")
@@ -166,10 +156,16 @@ def post_to_twitter(text):
         access_token = os.getenv("TWITTER_ACCESS_TOKEN")
         access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
 
+        logging.info(f"TWITTER_API_KEY: {api_key}")
+        logging.info(f"TWITTER_API_SECRET: {api_secret}")
+        logging.info(f"TWITTER_ACCESS_TOKEN: {access_token}")
+        logging.info(f"TWITTER_ACCESS_TOKEN_SECRET: {access_token_secret}")
+
         if not all([api_key, api_secret, access_token, access_token_secret]):
             logging.warning("One or more Twitter environment variables are missing!")
             return
 
+        import tweepy
         auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_token_secret)
         api = tweepy.API(auth)
 
