@@ -132,3 +132,19 @@ def post_weekly_npc():
         with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
         f.write(npc.strip() + "\n---\n")
+# Schedule your jobs
+schedule.every().monday.at("10:00").do(post_weekly_npc)
+schedule.every().thursday.at("10:00").do(post_weekly_npc)
+
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+if __name__ == "__main__":
+    # Start the scheduler in a background thread
+    Thread(target=run_scheduler).start()
+
+    # Start Flask on the port Render provides
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
