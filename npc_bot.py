@@ -13,7 +13,6 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
-import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -150,36 +149,26 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
-    """
-    Posts a tweet to Twitter using Tweepy with OAuth 1.0a
-    """
-    logging.info("Attempting to post to Twitter (OAuth1)...")
+    logging.info("Attempting to post to Twitter (v2)...")
+    tweet_text = text[:280]
+    bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
+    if not bearer_token:
+        logging.warning("TWITTER_BEARER_TOKEN not set; skipping Twitter post.")
+        return
+    headers = {
+        "Authorization": f"Bearer {bearer_token}",
+        "Content-Type": "application/json"
+    }
+    payload = {"text": tweet_text}
     try:
-        api_key = os.getenv("TWITTER_API_KEY")
-        api_secret = os.getenv("TWITTER_API_SECRET")
-        access_token = os.getenv("TWITTER_ACCESS_TOKEN")
-        access_token_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
-
-        if not all([api_key, api_secret, access_token, access_token_secret]):
-            logging.warning("One or more Twitter environment variables are missing!")
-            return
-
-        logging.info(f"TWITTER_API_KEY: {api_key}")
-        logging.info(f"TWITTER_API_SECRET: {api_secret}")
-        logging.info(f"TWITTER_ACCESS_TOKEN: {access_token}")
-        logging.info(f"TWITTER_ACCESS_TOKEN_SECRET: {access_token_secret}")
-
-        auth = tweepy.OAuth1UserHandler(api_key, api_secret, access_token, access_token_secret)
-        api = tweepy.API(auth)
-
-        trimmed_text = text[:280]
-        if len(trimmed_text) < len(text):
-            logging.info("Tweet text was truncated to 280 characters.")
-
-        api.update_status(status=trimmed_text)
-        logging.info("✅ Tweet posted successfully!")
+        response = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=payload)
+        if response.status_code == 201:
+            tweet_id = response.json().get("data", {}).get("id")
+            logging.info(f"✅ Tweet posted successfully (ID: {tweet_id})")
+        else:
+            logging.error(f"❌ Twitter post failed: {response.status_code} {response.text}")
     except Exception as e:
-        logging.exception("❌ Twitter post failed. Reason: %s", e)
+        logging.exception("❌ Unexpected error posting to Twitter")
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
