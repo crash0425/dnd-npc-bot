@@ -75,10 +75,22 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-def generate_npc_image():
+def generate_npc_image(npc_text):
     logging.info("Generating NPC image with DALL·E...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-    prompt = "Fantasy portrait of a unique tavern NPC, cinematic lighting, richly detailed, fantasy art style"
+
+    # Attempt to extract Race & Class
+    race_class = "unique tavern NPC"
+    for line in npc_text.splitlines():
+        if line.lower().startswith("race & class"):
+            parts = line.split(":", 1)
+            if len(parts) > 1:
+                race_class = parts[1].strip()
+                break
+
+    prompt = f"Fantasy portrait of a {race_class}, cinematic lighting, richly detailed, fantasy art style"
+    logging.info(f"Image prompt: {prompt}")
+
     response = client.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -112,19 +124,16 @@ def send_to_facebook_via_make(npc_text, image_url=None):
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
+    npc = generate_npc()
+    image_url = generate_npc_image(npc)
+    send_to_facebook_via_make(npc.strip(), image_url=image_url)
+
     if not os.path.exists(ARCHIVE_FILE):
-        logging.warning("Archive file not found.")
-        return
-    with open(ARCHIVE_FILE, "r") as f:
-        npcs = f.read().split("---")
-    if npcs:
-        npc = random.choice([x for x in npcs if x.strip()])
-        image_url = generate_npc_image()
-        send_to_facebook_via_make(npc.strip(), image_url=image_url)
-        with open(ARCHIVE_FILE, "a") as f:
-            f.write(npc.strip() + "\n---\n")
-    else:
-        logging.warning("No NPCs found in archive.")
+        with open(ARCHIVE_FILE, "w"): pass
+    with open(ARCHIVE_FILE, "a") as f:
+        f.write(npc.strip() + "
+---
+")
 
 def keep_alive():
     Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
