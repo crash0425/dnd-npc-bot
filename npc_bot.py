@@ -134,24 +134,3 @@ def post_weekly_npc():
         f.write(npc.strip() + "
 ---
 ")
-
-def keep_alive():
-    Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
-
-@app.route('/')
-def home():
-    return "NPC Bot is alive!"
-
-@app.route('/post-test')
-def post_test():
-    Thread(target=post_weekly_npc).start()
-    return "Triggered a manual Facebook post!"
-
-if __name__ == "__main__":
-    keep_alive()
-    schedule.every().monday.at("10:00").do(post_weekly_npc)
-    schedule.every().thursday.at("10:00").do(post_weekly_npc)
-
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
