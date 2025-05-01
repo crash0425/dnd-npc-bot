@@ -13,6 +13,7 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from datetime import datetime
 import schedule
+from requests_oauthlib import OAuth1
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -149,26 +150,35 @@ def generate_npc():
     return npc_text
 
 def post_to_twitter(text):
-    logging.info("Attempting to post to Twitter (v2)...")
-    tweet_text = text[:280]
-    bearer_token = os.getenv("TWITTER_BEARER_TOKEN")
-    if not bearer_token:
-        logging.warning("TWITTER_BEARER_TOKEN not set; skipping Twitter post.")
-        return
-    headers = {
-        "Authorization": f"Bearer {bearer_token}",
-        "Content-Type": "application/json"
-    }
-    payload = {"text": tweet_text}
+    logging.info("Attempting to post to Twitter (OAuth1)...")
     try:
-        response = requests.post("https://api.twitter.com/2/tweets", headers=headers, json=payload)
-        if response.status_code == 201:
-            tweet_id = response.json().get("data", {}).get("id")
-            logging.info(f"✅ Tweet posted successfully (ID: {tweet_id})")
+        api_key = os.getenv("TWITTER_API_KEY")
+        api_secret = os.getenv("TWITTER_API_SECRET")
+        access_token = os.getenv("TWITTER_ACCESS_TOKEN")
+        access_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+
+        if not all([api_key, api_secret, access_token, access_secret]):
+            logging.warning("One or more Twitter environment variables are missing!")
+            return
+
+        auth = OAuth1(api_key, api_secret, access_token, access_secret)
+        trimmed_text = text[:280]
+        if len(trimmed_text) < len(text):
+            logging.info("Tweet text was truncated to 280 characters.")
+
+        response = requests.post(
+            "https://api.twitter.com/1.1/statuses/update.json",
+            auth=auth,
+            data={"status": trimmed_text}
+        )
+
+        if response.status_code == 200:
+            logging.info("✅ Tweet posted successfully!")
         else:
             logging.error(f"❌ Twitter post failed: {response.status_code} {response.text}")
+
     except Exception as e:
-        logging.exception("❌ Unexpected error posting to Twitter")
+        logging.exception("❌ Twitter post failed. Reason: %s", e)
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
@@ -210,6 +220,40 @@ def home():
 def post_test():
     Thread(target=post_weekly_npc).start()
     return "Triggered a manual Twitter post!"
+
+@app.route('/post-curl')
+def post_with_curl_style():
+    logging.info("Testing Twitter post with raw request...")
+    try:
+        tweet_text = "This is a test tweet from Fantasy NPC Forge via raw OAuth 1.0a."
+
+        api_key = os.getenv("TWITTER_API_KEY")
+        api_secret = os.getenv("TWITTER_API_SECRET")
+        access_token = os.getenv("TWITTER_ACCESS_TOKEN")
+        access_secret = os.getenv("TWITTER_ACCESS_TOKEN_SECRET")
+
+        if not all([api_key, api_secret, access_token, access_secret]):
+            logging.error("One or more Twitter credentials are missing.")
+            return "Missing credentials", 500
+
+        auth = OAuth1(api_key, api_secret, access_token, access_secret)
+
+        response = requests.post(
+            "https://api.twitter.com/1.1/statuses/update.json",
+            auth=auth,
+            data={"status": tweet_text}
+        )
+
+        if response.status_code == 200:
+            logging.info("✅ Tweet sent successfully via raw request.")
+            return "Tweet sent successfully!", 200
+        else:
+            logging.error(f"❌ Failed to send tweet: {response.status_code} {response.text}")
+            return f"Failed: {response.status_code}", 500
+
+    except Exception as e:
+        logging.exception("Error in /post-curl")
+        return "Internal error", 500
 
 def keep_alive():
     Thread(target=lambda: app.run(host="0.0.0.0", port=8080)).start()
