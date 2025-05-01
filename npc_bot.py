@@ -131,6 +131,4 @@ def post_weekly_npc():
     if not os.path.exists(ARCHIVE_FILE):
         with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
-        f.write(npc.strip() + "
----
-")
+        f.write(npc.strip() + "\n---\n")
