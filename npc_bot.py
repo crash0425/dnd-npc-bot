@@ -134,4 +134,3 @@ def post_weekly_npc():
         f.write(npc.strip() + "
 ---
 ")
-
