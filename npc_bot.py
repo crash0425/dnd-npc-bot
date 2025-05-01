@@ -141,6 +141,16 @@ def run_scheduler():
         schedule.run_pending()
         time.sleep(60)
 
+@app.route('/')
+def home():
+    return "🧙 Fantasy NPC Forge Bot is running!"
+
+@app.route('/post-test')
+def post_test():
+    Thread(target=post_weekly_npc).start()
+    return "✅ Triggered a manual Facebook post!"
+
+
 if __name__ == "__main__":
     # Start the scheduler in a background thread
     Thread(target=run_scheduler).start()
