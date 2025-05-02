@@ -184,10 +184,16 @@ def send_to_facebook_via_make(npc_text, image_url=None):
 # Schedule tasks
 schedule.every().monday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
 schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
-schedule.every().year.at("10-31 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Halloween
-schedule.every().year.at("12-25 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Christmas
-schedule.every().year.at("02-14 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Valentine's Day
-schedule.every().year.at("07-04 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Independence Day
+schedule.every().day.at("10:00").do(lambda: post_holiday_npc_if_needed()), generate_npc_image(generate_npc())))  # Halloween
+, generate_npc_image(generate_npc())))  # Christmas
+, generate_npc_image(generate_npc())))  # Valentine's Day
+, generate_npc_image(generate_npc())))  # Independence Day
+
+def post_holiday_npc_if_needed():
+    today = datetime.now().strftime("%m-%d")
+    if today in ["10-31", "12-25", "02-14", "07-04"]:
+        logging.info(f"🎉 Posting special NPC for holiday {today}")
+        send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc()))
 
 # Run scheduler
 Thread(target=lambda: schedule.run_pending() or time.sleep(60)).start()
