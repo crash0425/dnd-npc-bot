@@ -107,20 +107,25 @@ def send_to_facebook_via_make(npc_text, image_url=None):
         logging.warning("MAKE_WEBHOOK_URL not set.")
         return
 
+    cta = os.getenv("CONVERTKIT_LINK", "")
+    caption = f"{npc_text}\n\nDownload Volume 1 of Fantasy NPC Forge FREE:\n{cta}"
+
     payload = {
         "npc_text": npc_text,
-        "cta": os.getenv("CONVERTKIT_LINK"),
-        "image_url": image_url or ""
+        "cta": cta,
+        "image_url": image_url or "",
+        "caption": caption
     }
 
     try:
         response = requests.post(webhook_url, json=payload)
         if response.status_code == 200:
-            logging.info("✅ NPC + image sent to Make for Facebook photo post.")
+            logging.info("✅ NPC + image + caption sent to Make for Facebook post.")
         else:
             logging.error(f"❌ Failed to send to Make: {response.status_code} {response.text}")
     except Exception as e:
         logging.exception("Error sending NPC to Make.com")
+
 
 def post_weekly_npc():
     logging.info("Weekly NPC Post Task Started")
