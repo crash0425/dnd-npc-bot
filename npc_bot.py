@@ -79,7 +79,6 @@ def generate_npc_image(npc_text):
     logging.info("Generating NPC image with DALL·E...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-    # Attempt to extract Race & Class
     race_class = "unique tavern NPC"
     for line in npc_text.splitlines():
         if line.lower().startswith("race & class"):
@@ -108,7 +107,63 @@ def send_to_facebook_via_make(npc_text, image_url=None):
         return
 
     cta = os.getenv("CONVERTKIT_LINK", "")
-    caption = f"{npc_text}\n\nDownload Volume 1 of Fantasy NPC Forge FREE:\n{cta}"
+    race_class_line = next((line for line in npc_text.splitlines() if line.lower().startswith("race & class")), "Race & Class: Unknown")
+    race_class = race_class_line.split(":", 1)[-1].strip().lower()
+    hashtags = "#dnd #ttrpg #npc #fantasyart #rpgcharacter #dndnpc"
+
+    if "wizard" in race_class:
+        hashtags += " #wizard #magicuser"
+    elif "rogue" in race_class:
+        hashtags += " #rogue #stealth"
+    elif "bard" in race_class:
+        hashtags += " #bard #musician"
+    elif "cleric" in race_class:
+        hashtags += " #cleric #healer"
+    elif "fighter" in race_class or "warrior" in race_class:
+        hashtags += " #fighter #melee"
+    elif "ranger" in race_class:
+        hashtags += " #ranger #archer"
+    elif "paladin" in race_class:
+        hashtags += " #paladin #holyknight"
+    elif "sorcerer" in race_class:
+        hashtags += " #sorcerer #arcane"
+    elif "druid" in race_class:
+        hashtags += " #druid #nature"
+    elif "barbarian" in race_class:
+        hashtags += " #barbarian #berserker"
+
+    if "elf" in race_class:
+        hashtags += " #elf #elven #fantasyrace"
+    elif "dwarf" in race_class:
+        hashtags += " #dwarf #stoutfolk #mountaindweller"
+    elif "orc" in race_class:
+        hashtags += " #orc #brutewarrior #greenskin"
+    elif "halfling" in race_class:
+        hashtags += " #halfling #smallfolk #lucky"
+    elif "gnome" in race_class:
+        hashtags += " #gnome #tinker #clever"
+    elif "dragonborn" in race_class:
+        hashtags += " #dragonborn #scaledfolk #draconic"
+    elif "tiefling" in race_class:
+        hashtags += " #tiefling #infernal #horned"
+    elif "human" in race_class:
+        hashtags += " #human #versatile #heroic"
+    elif "goblin" in race_class:
+        hashtags += " #goblin #sneaky #chaotic"
+    elif "tabaxi" in race_class:
+        hashtags += " #tabaxi #catfolk #nimble"
+
+    today = datetime.now().strftime("%m-%d")
+    if today == "10-31":
+        hashtags += " #Halloween #SpookyNPC"
+    elif today == "12-25":
+        hashtags += " #WinterFest #SantaSlayer"
+    elif today == "02-14":
+        hashtags += " #ValentinesDay #CharmingNPC"
+    elif today == "07-04":
+        hashtags += " #FireballFreedom"
+
+    caption = f"{npc_text}\n\nDownload Volume 1 of Fantasy NPC Forge FREE:\n{cta}\n\n{hashtags}"
 
     payload = {
         "npc_text": npc_text,
@@ -126,40 +181,17 @@ def send_to_facebook_via_make(npc_text, image_url=None):
     except Exception as e:
         logging.exception("Error sending NPC to Make.com")
 
+# Schedule tasks
+schedule.every().monday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
+schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
+schedule.every().year.at("10-31 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Halloween
+schedule.every().year.at("12-25 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Christmas
+schedule.every().year.at("02-14 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Valentine's Day
+schedule.every().year.at("07-04 10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))  # Independence Day
 
-def post_weekly_npc():
-    logging.info("Weekly NPC Post Task Started")
-    npc = generate_npc()
-    image_url = generate_npc_image(npc)
-    send_to_facebook_via_make(npc.strip(), image_url=image_url)
-
-    if not os.path.exists(ARCHIVE_FILE):
-        with open(ARCHIVE_FILE, "w"): pass
-    with open(ARCHIVE_FILE, "a") as f:
-        f.write(npc.strip() + "\n---\n")
-# Schedule your jobs
-schedule.every().monday.at("10:00").do(post_weekly_npc)
-schedule.every().thursday.at("10:00").do(post_weekly_npc)
-
-def run_scheduler():
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
-
-@app.route('/')
-def home():
-    return "🧙 Fantasy NPC Forge Bot is running!"
-
-@app.route('/post-test')
-def post_test():
-    Thread(target=post_weekly_npc).start()
-    return "✅ Triggered a manual Facebook post!"
-
+# Run scheduler
+Thread(target=lambda: schedule.run_pending() or time.sleep(60)).start()
 
 if __name__ == "__main__":
-    # Start the scheduler in a background thread
-    Thread(target=run_scheduler).start()
-
-    # Start Flask on the port Render provides
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
