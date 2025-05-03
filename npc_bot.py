@@ -139,7 +139,8 @@ def send_to_facebook_via_make(npc_text, image_url=None):
     elif today == "07-04":
         hashtags += " #FireballFreedom"
 
-    caption = f"{npc_text}
+    caption = f"{npc_text}\\n\\nDownload Volume 1 of Fantasy NPC Forge FREE:\\n{cta}\\n\\n{hashtags}"
+
 
 Download Volume 1 of Fantasy NPC Forge FREE:
 {cta}
