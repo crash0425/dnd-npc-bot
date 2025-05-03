@@ -10,7 +10,7 @@ from openai import OpenAI
 from threading import Thread
 from datetime import datetime
 import schedule
-from npc_video_generator import generate_npc_audio, create_npc_video
+from npc_video_generator import generate_npc_audio, create_npc_video, upload_video_to_drive
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -109,7 +109,8 @@ def test_make_post():
     # Generate voice + video
     audio_path = generate_npc_audio(npc)
     if audio_path:
-        create_npc_video(image_path, audio_path)
+        video_path = create_npc_video(image_path, audio_path)
+        upload_video_to_drive(video_path)
 
     send_to_facebook_via_make(npc, image_url)
     return "✅ Facebook + video creation triggered!"
