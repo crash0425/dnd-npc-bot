@@ -47,14 +47,11 @@ def generate_npc():
         temperature=0.8
     )
     npc_text = response.choices[0].message.content
-    logging.info(f"Generated NPC:
-{npc_text}")
+    logging.info(f"Generated NPC:\n{npc_text}")
     if not os.path.exists(ARCHIVE_FILE):
         with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
-        f.write(npc_text + "
----
-")
+        f.write(npc_text + "\n---\n")
     return npc_text
 
 def generate_npc_image(npc_text):
