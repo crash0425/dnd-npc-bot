@@ -10,7 +10,7 @@ from openai import OpenAI
 from threading import Thread
 from datetime import datetime
 import schedule
-from npc_video_generator import generate_npc_audio, create_npc_video
+from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -59,7 +59,7 @@ def upload_video_to_drive(filepath):
     uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
     logging.info(f"🎬 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
 
-# Core NPC generation
+# Generate NPC
 
 def generate_npc():
     logging.info("Calling OpenAI to generate NPC...")
@@ -79,6 +79,27 @@ def generate_npc():
     with open(ARCHIVE_FILE, "a") as f:
         f.write(npc_text + "\n---\n")
     return npc_text
+
+# Generate Audio
+
+def generate_npc_audio(text, output_path="npc_audio.mp3"):
+    from gtts import gTTS
+    tts = gTTS(text=text)
+    tts.save(output_path)
+    logging.info(f"🗣️ Audio saved to {output_path}")
+
+# Generate Video
+
+def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
+    logging.info("🎞️ Creating video clip...")
+    try:
+        clip = ImageClip(image_path).set_duration(10).resize(height=720)
+        audio = AudioFileClip(audio_path)
+        clip = clip.set_audio(audio)
+        clip.write_videofile(output_path, fps=12, codec="libx264", audio_codec="aac", preset="ultrafast", threads=2, logger=None)
+        logging.info(f"✅ Video written to {output_path}")
+    except Exception as e:
+        logging.error(f"❌ Error creating video: {e}")
 
 # Run scheduler and keep service alive
 
