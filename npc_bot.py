@@ -181,7 +181,18 @@ def send_to_facebook_via_make(npc_text, image_url=None):
     except Exception as e:
         logging.exception("Error sending NPC to Make.com")
 
+def post_holiday_npc_if_needed():
+    today = datetime.now().strftime("%m-%d")
+    if today in ["10-31", "12-25", "02-14", "07-04"]:
+        logging.info(f"🎉 Posting special NPC for holiday {today}")
+        send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc()))
+
 # Schedule tasks
 schedule.every().monday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
 schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
 schedule.every().day.at("10:00").do(post_holiday_npc_if_needed)
+
+if __name__ == "__main__":
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
