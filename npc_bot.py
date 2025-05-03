@@ -24,6 +24,10 @@ ARCHIVE_FILE = "npc_archive.txt"
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "🧙‍♂️ Fantasy NPC Bot is alive!"
+
 class PDF(FPDF):
     def header(self):
         self.set_font('Helvetica', 'B', 16)
@@ -193,6 +197,9 @@ schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generat
 schedule.every().day.at("10:00").do(post_holiday_npc_if_needed)
 
 if __name__ == "__main__":
+    # Start Flask uptime heartbeat
+    Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))).start()
+
     while True:
         schedule.run_pending()
         logging.info("No scheduled task at this time. Waiting...")
