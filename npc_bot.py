@@ -200,3 +200,30 @@ if __name__ == "__main__":
     while True:
         schedule.run_pending()
         time.sleep(60)
+
+def upload_video_to_drive(filepath):
+    import json
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    from google.oauth2 import service_account
+
+    logging.info("Uploading video to Google Drive...")
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+
+    if not credentials_json or not folder_id:
+        logging.error("Missing GOOGLE_CREDENTIALS or GOOGLE_DRIVE_FOLDER_ID.")
+        return
+
+    credentials_info = json.loads(credentials_json)
+    credentials = service_account.Credentials.from_service_account_info(credentials_info)
+    service = build("drive", "v3", credentials=credentials)
+
+    file_metadata = {
+        "name": os.path.basename(filepath),
+        "parents": [folder_id]
+    }
+    media = MediaFileUpload(filepath, mimetype="video/mp4")
+    uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
+    logging.info(f"🎬 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
+
