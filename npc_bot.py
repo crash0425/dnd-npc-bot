@@ -4,37 +4,35 @@ import json
 import random
 import requests
 import logging
+from flask import Flask
 from fpdf import FPDF
 from openai import OpenAI
-from flask import Flask
 from threading import Thread
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-from google.oauth2 import service_account
 from datetime import datetime
 import schedule
+from npc_video_generator import generate_npc_audio, create_npc_video
 
-# Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
-
+# Constants
 VOLUME_FOLDER = "npc_volumes"
-SCOPES = ['https://www.googleapis.com/auth/drive.file']
-GOOGLE_DRIVE_FOLDER_ID = "17s1RSf0fL2Y6-okaY854bojURv0rGMuF"
 ARCHIVE_FILE = "npc_archive.txt"
+CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.com/2aa9c10f01")
 
+# Setup
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "🧙‍♂️ Fantasy NPC Bot is alive!"
+# PDF Generator Class
+class PDF(FPDF):
+    def header(self):
+        self.set_font('Helvetica', 'B', 16)
+        self.cell(0, 10, "Fantasy NPC Forge", ln=True)
 
-@app.route("/test-make")
-def test_make_post():
-    npc = generate_npc()
-    image = generate_npc_image(npc)
-    send_to_facebook_via_make(npc, image)
-    return "✅ Make.com Facebook post test triggered!"
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Helvetica', '', 8)
+        self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
+# Core NPC generation
 def generate_npc():
     logging.info("Calling OpenAI to generate NPC...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -47,7 +45,7 @@ def generate_npc():
         temperature=0.8
     )
     npc_text = response.choices[0].message.content
-    logging.info(f"Generated NPC:\n{npc_text}")
+    logging.info(f"Generated NPC: {npc_text}")
     if not os.path.exists(ARCHIVE_FILE):
         with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
@@ -82,75 +80,10 @@ def send_to_facebook_via_make(npc_text, image_url=None):
         logging.warning("MAKE_WEBHOOK_URL not set.")
         return
 
-    cta = os.getenv("CONVERTKIT_LINK", "")
-    race_class_line = next((line for line in npc_text.splitlines() if line.lower().startswith("race & class")), "Race & Class: Unknown")
-    race_class = race_class_line.split(":", 1)[-1].strip().lower()
-    hashtags = "#dnd #ttrpg #npc #fantasyart #rpgcharacter #dndnpc"
-
-    if "wizard" in race_class:
-        hashtags += " #wizard #magicuser"
-    elif "rogue" in race_class:
-        hashtags += " #rogue #stealth"
-    elif "bard" in race_class:
-        hashtags += " #bard #musician"
-    elif "cleric" in race_class:
-        hashtags += " #cleric #healer"
-    elif "fighter" in race_class or "warrior" in race_class:
-        hashtags += " #fighter #melee"
-    elif "ranger" in race_class:
-        hashtags += " #ranger #archer"
-    elif "paladin" in race_class:
-        hashtags += " #paladin #holyknight"
-    elif "sorcerer" in race_class:
-        hashtags += " #sorcerer #arcane"
-    elif "druid" in race_class:
-        hashtags += " #druid #nature"
-    elif "barbarian" in race_class:
-        hashtags += " #barbarian #berserker"
-
-    if "elf" in race_class:
-        hashtags += " #elf #elven #fantasyrace"
-    elif "dwarf" in race_class:
-        hashtags += " #dwarf #stoutfolk #mountaindweller"
-    elif "orc" in race_class:
-        hashtags += " #orc #brutewarrior #greenskin"
-    elif "halfling" in race_class:
-        hashtags += " #halfling #smallfolk #lucky"
-    elif "gnome" in race_class:
-        hashtags += " #gnome #tinker #clever"
-    elif "dragonborn" in race_class:
-        hashtags += " #dragonborn #scaledfolk #draconic"
-    elif "tiefling" in race_class:
-        hashtags += " #tiefling #infernal #horned"
-    elif "human" in race_class:
-        hashtags += " #human #versatile #heroic"
-    elif "goblin" in race_class:
-        hashtags += " #goblin #sneaky #chaotic"
-    elif "tabaxi" in race_class:
-        hashtags += " #tabaxi #catfolk #nimble"
-
-    today = datetime.now().strftime("%m-%d")
-    if today == "10-31":
-        hashtags += " #Halloween #SpookyNPC"
-    elif today == "12-25":
-        hashtags += " #WinterFest #SantaSlayer"
-    elif today == "02-14":
-        hashtags += " #ValentinesDay #CharmingNPC"
-    elif today == "07-04":
-        hashtags += " #FireballFreedom"
-
-    caption = f"{npc_text}\\n\\nDownload Volume 1 of Fantasy NPC Forge FREE:\\n{cta}\\n\\n{hashtags}"
-
-
-
-
-
-
     payload = {
         "npc_text": npc_text,
-        "cta": cta,
-        "image_url": image_url or "",
-        "caption": caption
+        "cta": CONVERTKIT_LINK,
+        "image_url": image_url or ""
     }
 
     try:
@@ -160,21 +93,109 @@ def send_to_facebook_via_make(npc_text, image_url=None):
         else:
             logging.error(f"❌ Failed to send to Make: {response.status_code} {response.text}")
     except Exception as e:
-        logging.exception("Error sending NPC to Make.com")
+        logging.exception("Error sending to Make.com")
 
-def post_holiday_npc_if_needed():
-    today = datetime.now().strftime("%m-%d")
-    if today in ["10-31", "12-25", "02-14", "07-04"]:
-        logging.info(f"🎉 Posting special NPC for holiday {today}")
-        send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc()))
+@app.route("/test-make")
+def test_make_post():
+    npc = generate_npc()
+    image_url = generate_npc_image(npc)
 
-schedule.every().monday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
-schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
-schedule.every().day.at("10:00").do(post_holiday_npc_if_needed)
+    # Save image locally
+    image_path = os.path.join("npc_assets", f"npc_{int(time.time())}.png")
+    os.makedirs("npc_assets", exist_ok=True)
+    with open(image_path, "wb") as f:
+        f.write(requests.get(image_url).content)
+
+    # Generate voice + video
+    audio_path = generate_npc_audio(npc)
+    if audio_path:
+        create_npc_video(image_path, audio_path)
+
+    send_to_facebook_via_make(npc, image_url)
+    return "✅ Facebook + video creation triggered!"
+
+def create_volume_pdf(volume_npcs, volume_number):
+    from googleapiclient.discovery import build
+    from googleapiclient.http import MediaFileUpload
+    from google.oauth2 import service_account
+
+    logging.info("Generating PDF Volume...")
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    prompt = "Epic fantasy tavern interior, warm lighting, cozy but grand, filled with mysterious travelers, detailed environment, fantasy art style, cinematic, ultra-detailed"
+    image_response = client.images.generate(model="dall-e-3", prompt=prompt, n=1, size="1024x1024")
+    image_url = image_response.data[0].url
+    image_data = requests.get(image_url).content
+
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
+    cover_image_path = os.path.join(VOLUME_FOLDER, f"cover_volume{volume_number}.png")
+    with open(cover_image_path, "wb") as f:
+        f.write(image_data)
+
+    output_file = os.path.join(VOLUME_FOLDER, f"Fantasy_NPC_Forge_Volume{volume_number}.pdf")
+    pdf = PDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+
+    pdf.add_page()
+    pdf.image(cover_image_path, x=10, y=20, w=190)
+    pdf.add_page()
+    pdf.set_font("Helvetica", 'B', 24)
+    pdf.cell(0, 80, "", ln=True)
+    pdf.cell(0, 20, "Fantasy NPC Forge", ln=True, align='C')
+    pdf.set_font("Helvetica", '', 18)
+    pdf.cell(0, 20, f"Tavern NPC Pack - Volume {volume_number}", ln=True, align='C')
+
+    for npc in volume_npcs:
+        pdf.add_page()
+        lines = npc.splitlines()
+        for line in lines:
+            safe_line = (line.replace("’", "'")
+                              .replace("–", "-")
+                              .replace("“", '"')
+                              .replace("”", '"')
+                              .replace("…", "...")
+                              .replace("•", "-")
+                              .replace("̈", ""))
+            if ":" in safe_line:
+                label, content = safe_line.split(":", 1)
+                pdf.set_font("Helvetica", 'B', 12)
+                pdf.multi_cell(0, 8, f"{label.strip()}:")
+                pdf.set_font("Helvetica", '', 12)
+                pdf.multi_cell(0, 8, content.strip())
+                pdf.ln(2)
+            else:
+                pdf.set_font("Helvetica", '', 12)
+                pdf.multi_cell(0, 8, safe_line)
+        pdf.ln(5)
+
+    pdf.output(output_file)
+    logging.info(f"📘 PDF saved to {output_file}")
+
+    credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+    folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+    if credentials_json and folder_id:
+        credentials_info = json.loads(credentials_json)
+        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        service = build("drive", "v3", credentials=credentials)
+
+        file_metadata = {
+            "name": os.path.basename(output_file),
+            "parents": [folder_id]
+        }
+        media = MediaFileUpload(output_file, mimetype="application/pdf")
+        uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
+        logging.info(f"📤 PDF uploaded to Google Drive: {uploaded.get('webViewLink')}")
+
+def job():
+    logging.info("📚 Starting 6-month volume creation...")
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
+    volume_number = len(os.listdir(VOLUME_FOLDER)) + 1
+    volume_npcs = [generate_npc() for _ in range(10)]
+    create_volume_pdf(volume_npcs, volume_number)
 
 if __name__ == "__main__":
-    Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))).start()
+    Thread(target=lambda: app.run(host="0.0.0.0", port=10000)).start()
+    schedule.every(180).days.do(job)
     while True:
         schedule.run_pending()
-        logging.info("No scheduled task at this time. Waiting...")
         time.sleep(60)
