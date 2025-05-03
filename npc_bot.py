@@ -195,4 +195,5 @@ schedule.every().day.at("10:00").do(post_holiday_npc_if_needed)
 if __name__ == "__main__":
     while True:
         schedule.run_pending()
+        logging.info("No scheduled task at this time. Waiting...")
         time.sleep(60)
