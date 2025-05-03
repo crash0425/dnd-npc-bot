@@ -94,7 +94,18 @@ def home():
 @app.route('/test-video')
 def test_video_flow():
     npc_text = generate_npc()
+
+    # Generate image and save locally
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    image_prompt = "Fantasy portrait of a unique tavern NPC, cinematic lighting, richly detailed, fantasy art style"
+    image_response = client.images.generate(model="dall-e-3", prompt=image_prompt, n=1, size="1024x1024")
+    image_url = image_response.data[0].url
+
     image_path = "npc_image.png"
+    img_data = requests.get(image_url).content
+    with open(image_path, "wb") as handler:
+        handler.write(img_data)
+
     audio_path = "npc_audio.mp3"
     video_path = "npc_tiktok.mp4"
 
