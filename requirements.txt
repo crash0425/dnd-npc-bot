@@ -9,3 +9,5 @@ tweepy
 schedule
 moviepy
 requests
+imageio
+imageio-ffmpeg
