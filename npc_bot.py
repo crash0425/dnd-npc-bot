@@ -28,37 +28,12 @@ app = Flask(__name__)
 def home():
     return "🧙‍♂️ Fantasy NPC Bot is alive!"
 
-class PDF(FPDF):
-    def header(self):
-        self.set_font('Helvetica', 'B', 16)
-        self.cell(0, 10, "Fantasy NPC Forge", ln=True)
-
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Helvetica', '', 8)
-        self.cell(0, 10, f"Page {self.page_no()}", align='C')
-
-def upload_to_drive(filepath):
-    logging.info("Preparing to upload to Google Drive...")
-    credentials_json = os.getenv('GOOGLE_CREDENTIALS')
-    if not credentials_json:
-        raise Exception("GOOGLE_CREDENTIALS environment variable not found!")
-
-    credentials_info = json.loads(credentials_json)
-    credentials = service_account.Credentials.from_service_account_info(
-        credentials_info, scopes=SCOPES)
-
-    service = build('drive', 'v3', credentials=credentials)
-
-    file_metadata = {
-        'name': os.path.basename(filepath),
-        'parents': [GOOGLE_DRIVE_FOLDER_ID]
-    }
-    media = MediaFileUpload(filepath, mimetype='application/pdf')
-    file = service.files().create(body=file_metadata, media_body=media, fields='id, webViewLink').execute()
-    link = file.get('webViewLink')
-    logging.info(f"File uploaded: {link}")
-    return link
+@app.route("/test-make")
+def test_make_post():
+    npc = generate_npc()
+    image = generate_npc_image(npc)
+    send_to_facebook_via_make(npc, image)
+    return "✅ Make.com Facebook post test triggered!"
 
 def generate_npc():
     logging.info("Calling OpenAI to generate NPC...")
@@ -72,17 +47,19 @@ def generate_npc():
         temperature=0.8
     )
     npc_text = response.choices[0].message.content
-    logging.info(f"Generated NPC:\n{npc_text}")
+    logging.info(f"Generated NPC:
+{npc_text}")
     if not os.path.exists(ARCHIVE_FILE):
         with open(ARCHIVE_FILE, "w"): pass
     with open(ARCHIVE_FILE, "a") as f:
-        f.write(npc_text + "\n---\n")
+        f.write(npc_text + "
+---
+")
     return npc_text
 
 def generate_npc_image(npc_text):
     logging.info("Generating NPC image with DALL·E...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
     race_class = "unique tavern NPC"
     for line in npc_text.splitlines():
         if line.lower().startswith("race & class"):
@@ -90,10 +67,8 @@ def generate_npc_image(npc_text):
             if len(parts) > 1:
                 race_class = parts[1].strip()
                 break
-
     prompt = f"Fantasy portrait of a {race_class}, cinematic lighting, richly detailed, fantasy art style"
     logging.info(f"Image prompt: {prompt}")
-
     response = client.images.generate(
         model="dall-e-3",
         prompt=prompt,
@@ -167,7 +142,12 @@ def send_to_facebook_via_make(npc_text, image_url=None):
     elif today == "07-04":
         hashtags += " #FireballFreedom"
 
-    caption = f"{npc_text}\n\nDownload Volume 1 of Fantasy NPC Forge FREE:\n{cta}\n\n{hashtags}"
+    caption = f"{npc_text}
+
+Download Volume 1 of Fantasy NPC Forge FREE:
+{cta}
+
+{hashtags}"
 
     payload = {
         "npc_text": npc_text,
@@ -191,15 +171,12 @@ def post_holiday_npc_if_needed():
         logging.info(f"🎉 Posting special NPC for holiday {today}")
         send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc()))
 
-# Schedule tasks
 schedule.every().monday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
 schedule.every().friday.at("10:00").do(lambda: send_to_facebook_via_make(generate_npc(), generate_npc_image(generate_npc())))
 schedule.every().day.at("10:00").do(post_holiday_npc_if_needed)
 
 if __name__ == "__main__":
-    # Start Flask uptime heartbeat
     Thread(target=lambda: app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8080)))).start()
-
     while True:
         schedule.run_pending()
         logging.info("No scheduled task at this time. Waiting...")
