@@ -7,10 +7,10 @@ import logging
 from flask import Flask
 from fpdf import FPDF
 from openai import OpenAI
-from threading import Thread
 from datetime import datetime
 import schedule
 from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
+from elevenlabs import generate, save, set_api_key
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -80,12 +80,12 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-# Generate Audio
+# Generate Audio with ElevenLabs
 
 def generate_npc_audio(text, output_path="npc_audio.mp3"):
-    from gtts import gTTS
-    tts = gTTS(text=text)
-    tts.save(output_path)
+    set_api_key(os.getenv("ELEVENLABS_API_KEY"))
+    audio = generate(text=text, voice="Rachel", model="eleven_monolingual_v1")
+    save(audio, output_path)
     logging.info(f"🗣️ Audio saved to {output_path}")
 
 # Generate Video
@@ -100,13 +100,6 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         logging.info(f"✅ Video written to {output_path}")
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
-
-# Run scheduler and keep service alive
-
-def run_schedule():
-    while True:
-        schedule.run_pending()
-        time.sleep(60)
 
 @app.route('/')
 def home():
@@ -136,6 +129,6 @@ def test_video_flow():
 
     return "🎥 Video generation and upload triggered!"
 
+# Start Flask app (Render-friendly)
 if __name__ == "__main__":
-    Thread(target=run_schedule).start()
     app.run(host="0.0.0.0", port=10000)
