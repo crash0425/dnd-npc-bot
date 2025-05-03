@@ -10,7 +10,7 @@ from openai import OpenAI
 from datetime import datetime
 import schedule
 from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
-from elevenlabs import generate, save, set_api_key
+from elevenlabs.client import ElevenLabs
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -83,9 +83,14 @@ def generate_npc():
 # Generate Audio with ElevenLabs
 
 def generate_npc_audio(text, output_path="npc_audio.mp3"):
-    set_api_key(os.getenv("ELEVENLABS_API_KEY"))
-    audio = generate(text=text, voice="Rachel", model="eleven_monolingual_v1")
-    save(audio, output_path)
+    client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+    audio = client.text_to_speech.convert(
+        voice_id="21m00Tcm4TlvDq8ikWAM",
+        model_id="eleven_monolingual_v1",
+        text=text
+    )
+    with open(output_path, "wb") as f:
+        f.write(audio)
     logging.info(f"🗣️ Audio saved to {output_path}")
 
 # Generate Video
