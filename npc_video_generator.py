@@ -1,12 +1,10 @@
 import os
 import json
-import time
-import requests
 import logging
+import requests
 from moviepy.editor import ImageClip, AudioFileClip
 
 def generate_npc_audio(npc_text, output_path="npc_audio.mp3"):
-    """Generate audio using ElevenLabs TTS."""
     eleven_api_key = os.getenv("ELEVENLABS_API_KEY")
     voice_id = os.getenv("ELEVENLABS_VOICE_ID", "Rachel")
 
@@ -37,14 +35,13 @@ def generate_npc_audio(npc_text, output_path="npc_audio.mp3"):
         return None
 
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
-    """Create a TikTok-style video with an NPC portrait and audio."""
-    clip = ImageClip(image_path, duration=30).set_fps(1).resize(height=1920).set_position("center")
+    clip = ImageClip(image_path).set_duration(30).set_fps(1).resize(height=1920).set_position("center")
     audio = AudioFileClip(audio_path)
     video = clip.set_audio(audio).set_duration(audio.duration)
     video.write_videofile(output_path, fps=24)
     logging.info(f"📼 Video saved to: {output_path}")
 
-    # Upload to Google Drive if credentials are set
+    # Upload to Google Drive
     credentials_json = os.getenv("GOOGLE_CREDENTIALS")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
     logging.info(f"Drive upload vars - Credentials present: {bool(credentials_json)}, Folder ID: {folder_id}")
@@ -63,6 +60,7 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         }
         media = MediaFileUpload(output_path, mimetype="video/mp4")
         uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
-        if not uploaded:
+        if uploaded:
+            logging.info(f"📤 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
+        else:
             logging.warning("⚠️ Google Drive upload returned no data.")
-        logging.info(f"📤 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
