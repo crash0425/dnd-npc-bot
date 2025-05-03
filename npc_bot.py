@@ -80,4 +80,17 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-# ... (rest of code remains unchanged)
+# Run scheduler and keep service alive
+
+def run_schedule():
+    while True:
+        schedule.run_pending()
+        time.sleep(60)
+
+@app.route('/')
+def home():
+    return "✅ Bot is running"
+
+if __name__ == "__main__":
+    Thread(target=run_schedule).start()
+    app.run(host="0.0.0.0", port=10000)
