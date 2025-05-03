@@ -47,6 +47,7 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     # Upload to Google Drive if credentials are set
     credentials_json = os.getenv("GOOGLE_CREDENTIALS")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+    logging.info(f"Drive upload vars - Credentials present: {bool(credentials_json)}, Folder ID: {folder_id}")
     if credentials_json and folder_id:
         from googleapiclient.discovery import build
         from googleapiclient.http import MediaFileUpload
@@ -62,4 +63,6 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         }
         media = MediaFileUpload(output_path, mimetype="video/mp4")
         uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
+        if not uploaded:
+            logging.warning("⚠️ Google Drive upload returned no data.")
         logging.info(f"📤 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
