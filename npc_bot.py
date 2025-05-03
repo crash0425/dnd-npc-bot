@@ -91,6 +91,19 @@ def run_schedule():
 def home():
     return "✅ Bot is running"
 
+@app.route('/test-video')
+def test_video_flow():
+    npc_text = generate_npc()
+    image_path = "npc_image.png"
+    audio_path = "npc_audio.mp3"
+    video_path = "npc_tiktok.mp4"
+
+    generate_npc_audio(npc_text, output_path=audio_path)
+    create_npc_video(image_path=image_path, audio_path=audio_path, output_path=video_path)
+    upload_video_to_drive(video_path)
+
+    return "🎥 Video generation and upload triggered!"
+
 if __name__ == "__main__":
     Thread(target=run_schedule).start()
     app.run(host="0.0.0.0", port=10000)
