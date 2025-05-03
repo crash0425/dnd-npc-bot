@@ -11,3 +11,4 @@ google-auth-oauthlib
 schedule
 Pillow==9.5.0
 gunicorn
+elevenlabs
