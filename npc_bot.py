@@ -87,11 +87,14 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
     audio = client.text_to_speech.convert(
         voice_id="21m00Tcm4TlvDq8ikWAM",
         model_id="eleven_monolingual_v1",
-        text=text
+        text=text,
+        stream=True  # Stream required for chunked audio
     )
     with open(output_path, "wb") as f:
-        f.write(audio)
+        for chunk in audio:
+            f.write(chunk)
     logging.info(f"🗣️ Audio saved to {output_path}")
+
 
 # Generate Video
 
