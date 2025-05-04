@@ -8,11 +8,10 @@ from fpdf import FPDF
 from openai import OpenAI
 from datetime import datetime
 from moviepy.editor import ImageClip, AudioFileClip
-from elevenlabs.client import ElevenLabs
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
-from gtts import gTTS
+from google.cloud import texttospeech
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -75,27 +74,35 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-# Generate Audio with ElevenLabs and fallback to gTTS
+# Generate Audio with Google Cloud Text-to-Speech
 def generate_npc_audio(text, output_path="npc_audio.mp3"):
     try:
-        client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
-        audio_stream = client.text_to_speech.convert(
-            voice_id="21m00Tcm4TlvDq8ikWAM",
-            model_id="eleven_monolingual_v1",
-            text=text
+        logging.info("🎤 Using Google Cloud TTS...")
+        credentials_json = os.getenv("GOOGLE_CREDENTIALS")
+        if not credentials_json:
+            raise ValueError("Missing GOOGLE_CREDENTIALS")
+        credentials_info = json.loads(credentials_json)
+        credentials = service_account.Credentials.from_service_account_info(credentials_info)
+        client = texttospeech.TextToSpeechClient(credentials=credentials)
+
+        synthesis_input = texttospeech.SynthesisInput(text=text)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-GB",
+            name="en-GB-Wavenet-B"
         )
-        with open(output_path, "wb") as f:
-            for chunk in audio_stream:
-                f.write(chunk)
-        logging.info(f"🗣️ Audio saved to {output_path} (via ElevenLabs)")
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3,
+            pitch=2.0,
+            speaking_rate=0.92,
+            volume_gain_db=3.0
+        )
+
+        response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
+        with open(output_path, "wb") as out:
+            out.write(response.audio_content)
+        logging.info(f"🗣️ Audio saved to {output_path} (via Google Cloud TTS)")
     except Exception as e:
-        logging.warning(f"⚠️ ElevenLabs failed: {e}. Falling back to gTTS...")
-        try:
-            tts = gTTS(text=text, lang='en', slow=False)
-            tts.save(output_path)
-            logging.info(f"🗣️ Audio saved to {output_path} (via gTTS fallback)")
-        except Exception as fallback_error:
-            logging.error(f"❌ gTTS also failed: {fallback_error}")
+        logging.error(f"❌ Google Cloud TTS failed: {e}")
 
 # Generate Video
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
