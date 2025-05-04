@@ -43,6 +43,8 @@ def upload_video_to_drive(filepath):
         return
 
     credentials_info = json.loads(credentials_json)
+    if isinstance(credentials_info, str):
+        credentials_info = json.loads(credentials_info)
     credentials = service_account.Credentials.from_service_account_info(credentials_info)
     service = build("drive", "v3", credentials=credentials)
 
@@ -82,6 +84,8 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
         if not credentials_json:
             raise ValueError("Missing GOOGLE_CREDENTIALS")
         credentials_info = json.loads(credentials_json)
+        if isinstance(credentials_info, str):
+            credentials_info = json.loads(credentials_info)
         credentials = service_account.Credentials.from_service_account_info(credentials_info)
         client = texttospeech.TextToSpeechClient(credentials=credentials)
 
