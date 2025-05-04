@@ -11,7 +11,7 @@ from moviepy.editor import ImageClip, AudioFileClip
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
-from google.cloud import texttospeech
+from google.cloud import texttospeech_v1 as texttospeech
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
