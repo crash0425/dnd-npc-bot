@@ -42,9 +42,14 @@ def upload_video_to_drive(filepath):
         logging.error("Missing GOOGLE_CREDENTIALS or GOOGLE_DRIVE_FOLDER_ID.")
         return
 
-    credentials_info = json.loads(credentials_json)
-    if isinstance(credentials_info, str):
-        credentials_info = json.loads(credentials_info)
+    try:
+        credentials_info = json.loads(credentials_json)
+        if isinstance(credentials_info, str):
+            credentials_info = json.loads(credentials_info)
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to decode GOOGLE_CREDENTIALS: {e}")
+        return
+
     credentials = service_account.Credentials.from_service_account_info(credentials_info)
     service = build("drive", "v3", credentials=credentials)
 
@@ -83,9 +88,21 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
         credentials_json = os.getenv("GOOGLE_CREDENTIALS")
         if not credentials_json:
             raise ValueError("Missing GOOGLE_CREDENTIALS")
-        credentials_info = json.loads(credentials_json)
-        if isinstance(credentials_info, str):
-            credentials_info = json.loads(credentials_info)
+
+        if isinstance(credentials_json, str):
+            try:
+                credentials_info = json.loads(credentials_json)
+                if not isinstance(credentials_info, dict):
+                    raise ValueError("Parsed GOOGLE_CREDENTIALS is not a dict")
+            except json.JSONDecodeError:
+                raise ValueError("GOOGLE_CREDENTIALS is not valid JSON")
+        else:
+            raise ValueError("GOOGLE_CREDENTIALS must be a JSON string")
+
+        required_keys = {"type", "private_key", "client_email", "token_uri"}
+        if not required_keys.issubset(credentials_info.keys()):
+            raise ValueError(f"GOOGLE_CREDENTIALS missing keys: {required_keys - credentials_info.keys()}")
+
         credentials = service_account.Credentials.from_service_account_info(credentials_info)
         client = texttospeech.TextToSpeechClient(credentials=credentials)
 
