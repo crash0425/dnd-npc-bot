@@ -12,6 +12,7 @@ from elevenlabs.client import ElevenLabs
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
+from gtts import gTTS
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -74,18 +75,27 @@ def generate_npc():
         f.write(npc_text + "\n---\n")
     return npc_text
 
-# Generate Audio with ElevenLabs
+# Generate Audio with ElevenLabs and fallback to gTTS
 def generate_npc_audio(text, output_path="npc_audio.mp3"):
-    client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
-    audio_stream = client.text_to_speech.convert(
-        voice_id="21m00Tcm4TlvDq8ikWAM",
-        model_id="eleven_monolingual_v1",
-        text=text
-    )
-    with open(output_path, "wb") as f:
-        for chunk in audio_stream:
-            f.write(chunk)
-    logging.info(f"🗣️ Audio saved to {output_path}")
+    try:
+        client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
+        audio_stream = client.text_to_speech.convert(
+            voice_id="21m00Tcm4TlvDq8ikWAM",
+            model_id="eleven_monolingual_v1",
+            text=text
+        )
+        with open(output_path, "wb") as f:
+            for chunk in audio_stream:
+                f.write(chunk)
+        logging.info(f"🗣️ Audio saved to {output_path} (via ElevenLabs)")
+    except Exception as e:
+        logging.warning(f"⚠️ ElevenLabs failed: {e}. Falling back to gTTS...")
+        try:
+            tts = gTTS(text=text, lang='en', slow=False)
+            tts.save(output_path)
+            logging.info(f"🗣️ Audio saved to {output_path} (via gTTS fallback)")
+        except Exception as fallback_error:
+            logging.error(f"❌ gTTS also failed: {fallback_error}")
 
 # Generate Video
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
@@ -118,6 +128,6 @@ def run_worker():
     upload_video_to_drive("npc_tiktok.mp4")
     logging.info("🎉 Worker completed successfully")
 
-# Trigger for manual execution
+# Trigger for manual testing
 if __name__ == "__main__":
     run_worker()
