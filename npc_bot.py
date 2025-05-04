@@ -4,13 +4,14 @@ import json
 import random
 import requests
 import logging
-from flask import Flask
 from fpdf import FPDF
 from openai import OpenAI
 from datetime import datetime
-import schedule
-from moviepy.editor import ImageClip, AudioFileClip, CompositeVideoClip
+from moviepy.editor import ImageClip, AudioFileClip
 from elevenlabs.client import ElevenLabs
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+from google.oauth2 import service_account
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
@@ -19,7 +20,6 @@ CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.co
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
-app = Flask(__name__)
 
 # PDF Generator Class
 class PDF(FPDF):
@@ -33,12 +33,7 @@ class PDF(FPDF):
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
 # Upload video to Google Drive
-
 def upload_video_to_drive(filepath):
-    from googleapiclient.discovery import build
-    from googleapiclient.http import MediaFileUpload
-    from google.oauth2 import service_account
-
     logging.info("Uploading video to Google Drive...")
     credentials_json = os.getenv("GOOGLE_CREDENTIALS")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
@@ -60,7 +55,6 @@ def upload_video_to_drive(filepath):
     logging.info(f"🎬 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
 
 # Generate NPC
-
 def generate_npc():
     logging.info("Calling OpenAI to generate NPC...")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -81,23 +75,19 @@ def generate_npc():
     return npc_text
 
 # Generate Audio with ElevenLabs
-
 def generate_npc_audio(text, output_path="npc_audio.mp3"):
     client = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"))
-    audio = client.text_to_speech.convert(
+    audio_stream = client.text_to_speech.convert(
         voice_id="21m00Tcm4TlvDq8ikWAM",
         model_id="eleven_monolingual_v1",
-        text=text,
-        stream=True  # Stream required for chunked audio
+        text=text
     )
     with open(output_path, "wb") as f:
-        for chunk in audio:
+        for chunk in audio_stream:
             f.write(chunk)
     logging.info(f"🗣️ Audio saved to {output_path}")
 
-
 # Generate Video
-
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     logging.info("🎞️ Creating video clip...")
     try:
@@ -109,16 +99,11 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
-@app.route('/')
-def home():
-    return "✅ Bot is running"
-
-@app.route('/test-worker')
-def test_worker():
-    # Step 1: Generate NPC
+# Background Worker Logic
+def run_worker():
+    logging.info("🔁 Running scheduled NPC workflow")
     npc_text = generate_npc()
 
-    # Step 2: Generate Image
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     image_prompt = "Fantasy portrait of a unique tavern NPC, cinematic lighting, richly detailed, fantasy art style"
     image_response = client.images.generate(model="dall-e-3", prompt=image_prompt, n=1, size="1024x1024")
@@ -128,18 +113,11 @@ def test_worker():
     with open(image_path, "wb") as handler:
         handler.write(img_data)
 
-    # Step 3: Generate Audio
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
-
-    # Step 4: Create Video
-    create_npc_video(image_path="npc_image.png", audio_path="npc_audio.mp3", output_path="npc_tiktok.mp4")
-
-    # Step 5: Upload Video
+    create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
     upload_video_to_drive("npc_tiktok.mp4")
+    logging.info("🎉 Worker completed successfully")
 
-    return "✅ Full pipeline test complete!"
-
-
-# Start Flask app (Render-friendly)
+# Trigger for manual testing
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    run_worker()
