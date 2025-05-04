@@ -110,29 +110,32 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
 def home():
     return "✅ Bot is running"
 
-@app.route('/test-video')
-def test_video_flow():
+@app.route('/test-worker')
+def test_worker():
+    # Step 1: Generate NPC
     npc_text = generate_npc()
 
-    # Generate image and save locally
+    # Step 2: Generate Image
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     image_prompt = "Fantasy portrait of a unique tavern NPC, cinematic lighting, richly detailed, fantasy art style"
     image_response = client.images.generate(model="dall-e-3", prompt=image_prompt, n=1, size="1024x1024")
     image_url = image_response.data[0].url
-
     image_path = "npc_image.png"
     img_data = requests.get(image_url).content
     with open(image_path, "wb") as handler:
         handler.write(img_data)
 
-    audio_path = "npc_audio.mp3"
-    video_path = "npc_tiktok.mp4"
+    # Step 3: Generate Audio
+    generate_npc_audio(npc_text, output_path="npc_audio.mp3")
 
-    generate_npc_audio(npc_text, output_path=audio_path)
-    create_npc_video(image_path=image_path, audio_path=audio_path, output_path=video_path)
-    upload_video_to_drive(video_path)
+    # Step 4: Create Video
+    create_npc_video(image_path="npc_image.png", audio_path="npc_audio.mp3", output_path="npc_tiktok.mp4")
 
-    return "🎥 Video generation and upload triggered!"
+    # Step 5: Upload Video
+    upload_video_to_drive("npc_tiktok.mp4")
+
+    return "✅ Full pipeline test complete!"
+
 
 # Start Flask app (Render-friendly)
 if __name__ == "__main__":
