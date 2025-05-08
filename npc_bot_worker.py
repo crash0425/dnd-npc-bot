@@ -18,8 +18,6 @@ import schedule
 VOLUME_FOLDER = "npc_volumes"
 ARCHIVE_FILE = "npc_archive.txt"
 CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.com/2aa9c10f01")
-FACEBOOK_PAGE_ID = os.getenv("FACEBOOK_PAGE_ID")
-FACEBOOK_ACCESS_TOKEN = os.getenv("FACEBOOK_ACCESS_TOKEN")
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -63,7 +61,6 @@ def upload_video_to_drive(filepath):
     media = MediaFileUpload(filepath, mimetype="video/mp4")
     uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
     logging.info(f"🎬 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
-    return uploaded.get("webViewLink")
 
 # Generate NPC
 def generate_npc():
@@ -93,7 +90,15 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
         if not credentials_json:
             raise ValueError("Missing GOOGLE_CREDENTIALS")
 
-        credentials_info = json.loads(credentials_json) if isinstance(credentials_json, str) else credentials_json
+        if isinstance(credentials_json, str):
+            try:
+                credentials_info = json.loads(credentials_json)
+                if not isinstance(credentials_info, dict):
+                    raise ValueError("Parsed GOOGLE_CREDENTIALS is not a dict")
+            except json.JSONDecodeError:
+                raise ValueError("GOOGLE_CREDENTIALS is not valid JSON")
+        else:
+            raise ValueError("GOOGLE_CREDENTIALS must be a JSON string")
 
         required_keys = {"type", "private_key", "client_email", "token_uri"}
         if not required_keys.issubset(credentials_info.keys()):
@@ -103,8 +108,16 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
         client = texttospeech.TextToSpeechClient(credentials=credentials)
 
         synthesis_input = texttospeech.SynthesisInput(text=text)
-        voice = texttospeech.VoiceSelectionParams(language_code="en-GB", name="en-GB-Wavenet-B")
-        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3, pitch=2.0, speaking_rate=0.92, volume_gain_db=3.0)
+        voice = texttospeech.VoiceSelectionParams(
+            language_code="en-GB",
+            name="en-GB-Wavenet-B"
+        )
+        audio_config = texttospeech.AudioConfig(
+            audio_encoding=texttospeech.AudioEncoding.MP3,
+            pitch=2.0,
+            speaking_rate=0.92,
+            volume_gain_db=3.0
+        )
 
         response = client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
         with open(output_path, "wb") as out:
@@ -125,43 +138,6 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
-# Create PDF Volume
-def create_pdf_volume(npc_text):
-    if not os.path.exists(VOLUME_FOLDER):
-        os.makedirs(VOLUME_FOLDER)
-    date_str = datetime.utcnow().strftime("%Y-%m-%d")
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_font("Helvetica", size=12)
-    for line in npc_text.split("\n"):
-        pdf.multi_cell(0, 10, line)
-    filepath = os.path.join(VOLUME_FOLDER, f"npc_volume_{date_str}.pdf")
-    pdf.output(filepath)
-    logging.info(f"📘 PDF Volume saved to {filepath}")
-    return filepath
-
-# Post to Facebook
-def post_to_facebook(npc_text, video_path):
-    if not FACEBOOK_PAGE_ID or not FACEBOOK_ACCESS_TOKEN:
-        logging.warning("Skipping Facebook post due to missing credentials.")
-        return
-   caption = f"""📘 Here's your latest NPC!
-Download the full volume at {CONVERTKIT_LINK}
-#dnd #ttrpg #fantasy #npc"""
-
-
-
-{npc_text}\n\nDownload all volumes: {CONVERTKIT_LINK}"
-    logging.info("📢 Posting to Facebook...")
-    url = f"https://graph.facebook.com/{FACEBOOK_PAGE_ID}/videos"
-    files = {"source": open(video_path, "rb")}
-    data = {"access_token": FACEBOOK_ACCESS_TOKEN, "description": caption}
-    response = requests.post(url, files=files, data=data)
-    if response.ok:
-        logging.info("✅ Successfully posted to Facebook.")
-    else:
-        logging.error(f"❌ Failed to post to Facebook: {response.text}")
-
 # Background Worker Logic
 def run_worker():
     logging.info("🔁 Running scheduled NPC workflow")
@@ -177,10 +153,12 @@ def run_worker():
         handler.write(img_data)
 
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
-    create_npc_video(image_path, "npc_audio.mp3", output_path="npc_tiktok.mp4")
-    drive_url = upload_video_to_drive("npc_tiktok.mp4")
-    post_to_facebook(npc_text, "npc_tiktok.mp4")
-    create_pdf_volume(npc_text)
+    create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
+    upload_video_to_drive("npc_tiktok.mp4")
+
+    caption = f"""📘 Here's your latest NPC!
+Download the full volume at {CONVERTKIT_LINK}
+#dnd #ttrpg #fantasy #npc"""
     logging.info("🎉 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
