@@ -190,3 +190,8 @@ def schedule_worker():
 
 if __name__ == "__main__":
     schedule_worker()
+
+if __name__ == "__main__":
+    video_url = "https://example.com/fake_video.mp4"
+    caption = "📘 Here's your latest NPC!\nDownload the full volume at https://fantasy-npc-forge.kit.com/2aa9c10f01"
+    post_to_facebook(caption, video_url)
