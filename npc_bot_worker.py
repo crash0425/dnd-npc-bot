@@ -145,7 +145,10 @@ def post_to_facebook(npc_text, video_path):
     if not FACEBOOK_PAGE_ID or not FACEBOOK_ACCESS_TOKEN:
         logging.warning("Skipping Facebook post due to missing credentials.")
         return
-    caption = f"📘 Here's your latest NPC!
+    caption = caption = f"""📘 Here's your latest NPC!
+      Download the full volume at {CONVERTKIT_LINK}
+      #dnd #ttrpg #fantasy #npc"""
+
 
 {npc_text}\n\nDownload all volumes: {CONVERTKIT_LINK}"
     logging.info("📢 Posting to Facebook...")
