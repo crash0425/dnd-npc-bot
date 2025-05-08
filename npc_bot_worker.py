@@ -18,6 +18,7 @@ import schedule
 VOLUME_FOLDER = "npc_volumes"
 ARCHIVE_FILE = "npc_archive.txt"
 CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.com/2aa9c10f01")
+MAKE_WEBHOOK_URL = "https://hook.us2.make.com/rhwkubxkf96d8fe6ppowtkskxs46i7ei"
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -32,6 +33,35 @@ class PDF(FPDF):
         self.set_y(-15)
         self.set_font('Helvetica', '', 8)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
+
+# Create PDF Volume
+def create_npc_volume():
+    if not os.path.exists(ARCHIVE_FILE):
+        logging.warning("No NPCs archived yet.")
+        return None
+
+    with open(ARCHIVE_FILE, "r") as f:
+        entries = f.read().strip().split("\n---\n")
+
+    if not entries:
+        logging.warning("NPC archive is empty.")
+        return None
+
+    os.makedirs(VOLUME_FOLDER, exist_ok=True)
+    volume_id = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
+    pdf = PDF()
+    pdf.add_page()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.set_font("Helvetica", size=12)
+
+    for entry in entries:
+        pdf.multi_cell(0, 10, entry)
+        pdf.ln()
+
+    pdf_path = os.path.join(VOLUME_FOLDER, f"npc_volume_{volume_id}.pdf")
+    pdf.output(pdf_path)
+    logging.info(f"📕 Created NPC volume: {pdf_path}")
+    return pdf_path
 
 # Upload video to Google Drive
 def upload_video_to_drive(filepath):
@@ -60,7 +90,9 @@ def upload_video_to_drive(filepath):
     }
     media = MediaFileUpload(filepath, mimetype="video/mp4")
     uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
-    logging.info(f"🎬 Video uploaded to Google Drive: {uploaded.get('webViewLink')}")
+    public_url = uploaded.get("webViewLink")
+    logging.info(f"🎬 Video uploaded to Google Drive: {public_url}")
+    return public_url
 
 # Generate NPC
 def generate_npc():
@@ -138,6 +170,21 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
+# Post to Facebook via Make Webhook
+def post_to_facebook(caption, video_url):
+    logging.info("📤 Posting to Facebook via Make webhook...")
+    try:
+        payload = {
+            "caption": caption,
+            "video_url": video_url
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
+        response.raise_for_status()
+        logging.info("✅ Facebook post triggered successfully")
+    except Exception as e:
+        logging.error(f"❌ Failed to post to Facebook: {e}")
+
 # Background Worker Logic
 def run_worker():
     logging.info("🔁 Running scheduled NPC workflow")
@@ -154,11 +201,13 @@ def run_worker():
 
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
     create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
-    upload_video_to_drive("npc_tiktok.mp4")
+    video_url = upload_video_to_drive("npc_tiktok.mp4")
+    pdf_path = create_npc_volume()
 
     caption = f"""📘 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
 #dnd #ttrpg #fantasy #npc"""
+    post_to_facebook(caption, video_url)
     logging.info("🎉 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
