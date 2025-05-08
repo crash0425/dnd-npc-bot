@@ -189,9 +189,8 @@ def schedule_worker():
         time.sleep(60)
 
 if __name__ == "__main__":
-    schedule_worker()
+    # Manually trigger the Facebook webhook to send test data
+    test_caption = "📘 Here's your latest NPC!\nDownload all volumes at https://fantasy-npc-forge.kit.com/2aa9c10f01"
+    test_video_url = "https://example.com/test_video.mp4"
+    post_to_facebook(test_caption, test_video_url)
 
-if __name__ == "__main__":
-    video_url = "https://example.com/fake_video.mp4"
-    caption = "📘 Here's your latest NPC!\nDownload the full volume at https://fantasy-npc-forge.kit.com/2aa9c10f01"
-    post_to_facebook(caption, video_url)
