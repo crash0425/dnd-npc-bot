@@ -34,35 +34,6 @@ class PDF(FPDF):
         self.set_font('Helvetica', '', 8)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
-# Create PDF Volume
-def create_npc_volume():
-    if not os.path.exists(ARCHIVE_FILE):
-        logging.warning("No NPCs archived yet.")
-        return None
-
-    with open(ARCHIVE_FILE, "r") as f:
-        entries = f.read().strip().split("\n---\n")
-
-    if not entries:
-        logging.warning("NPC archive is empty.")
-        return None
-
-    os.makedirs(VOLUME_FOLDER, exist_ok=True)
-    volume_id = datetime.utcnow().strftime("%Y-%m-%d_%H-%M-%S")
-    pdf = PDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Helvetica", size=12)
-
-    for entry in entries:
-        pdf.multi_cell(0, 10, entry)
-        pdf.ln()
-
-    pdf_path = os.path.join(VOLUME_FOLDER, f"npc_volume_{volume_id}.pdf")
-    pdf.output(pdf_path)
-    logging.info(f"📕 Created NPC volume: {pdf_path}")
-    return pdf_path
-
 # Upload video to Google Drive
 def upload_video_to_drive(filepath):
     logging.info("Uploading video to Google Drive...")
@@ -202,7 +173,6 @@ def run_worker():
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
     create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
     video_url = upload_video_to_drive("npc_tiktok.mp4")
-    pdf_path = create_npc_volume()
 
     caption = f"""📘 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
