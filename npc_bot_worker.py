@@ -141,20 +141,22 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
-# Post to Facebook via Make Webhook
-def post_to_facebook(caption, video_url):
-    logging.info("📤 Posting to Facebook via Make webhook...")
+# Post image and caption to Facebook via Make webhook
+def post_to_facebook_image(caption, image_path):
+    logging.info("📤 Posting image to Facebook via Make webhook...")
     try:
+        with open(image_path, "rb") as image_file:
+            image_bytes = image_file.read()
         payload = {
             "caption": caption,
-            "url": video_url
+            "image": image_bytes.hex()
         }
         headers = {"Content-Type": "application/json"}
         response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
         response.raise_for_status()
-        logging.info("✅ Facebook post triggered successfully")
+        logging.info("✅ Facebook image post triggered successfully")
     except Exception as e:
-        logging.error(f"❌ Failed to post to Facebook: {e}")
+        logging.error(f"❌ Failed to post image to Facebook: {e}")
 
 # Background Worker Logic
 def run_worker():
@@ -177,7 +179,7 @@ def run_worker():
     caption = f"""📘 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
 #dnd #ttrpg #fantasy #npc"""
-    post_to_facebook(caption, video_url)
+    post_to_facebook_image(caption, image_path)
     logging.info("🎉 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
@@ -189,8 +191,4 @@ def schedule_worker():
         time.sleep(60)
 
 if __name__ == "__main__":
-    # Manually trigger the Facebook webhook to send test data
-    test_caption = "📘 Here's your latest NPC!\nDownload all volumes at https://fantasy-npc-forge.kit.com/2aa9c10f01"
-    test_video_url = "https://example.com/test_video.mp4"
-    post_to_facebook(test_caption, test_video_url)
-
+    schedule_worker()
