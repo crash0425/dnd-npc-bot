@@ -4,6 +4,7 @@ import json
 import random
 import requests
 import logging
+import base64
 from fpdf import FPDF
 from openai import OpenAI
 from datetime import datetime
@@ -13,7 +14,6 @@ from googleapiclient.http import MediaFileUpload
 from google.oauth2 import service_account
 from google.cloud import texttospeech_v1 as texttospeech
 import schedule
-import base64
 
 # Constants
 VOLUME_FOLDER = "npc_volumes"
