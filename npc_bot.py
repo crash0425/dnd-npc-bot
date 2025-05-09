@@ -1,21 +1,29 @@
 from flask import Flask
-import logging
-from npc_bot_worker import run_worker  # This must match the worker file name (no `.py`)
+import os
+import requests
+from npc_bot_worker import post_to_facebook_image
 
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "✅ NPC Bot Web Service is up and running."
+    return "🧙‍♂️ Fantasy NPC Forge Web Service is live!"
 
-@app.route("/test-worker")
-def test_worker():
-    try:
-        run_worker()
-        return "✅ Worker completed successfully."
-    except Exception as e:
-        logging.exception("Worker failed:")
-        return f"❌ Worker failed: {str(e)}", 500
+@app.route("/test-facebook", methods=["GET"])
+def test_facebook_post():
+    caption = "📘 This is a test Facebook image post from the Render web service!"
+    image_path = "npc_image.png"
 
+    if not os.path.exists(image_path):
+        # Download a placeholder image to simulate a generated one
+        placeholder_url = "https://via.placeholder.com/1024"
+        img_data = requests.get(placeholder_url).content
+        with open(image_path, "wb") as f:
+            f.write(img_data)
+
+    post_to_facebook_image(caption, image_path)
+    return "✅ Facebook post test triggered!"
+
+# Needed by gunicorn to find the app
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
