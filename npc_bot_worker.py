@@ -35,9 +35,9 @@ class PDF(FPDF):
         self.set_font('Helvetica', '', 8)
         self.cell(0, 10, f"Page {self.page_no()}", align='C')
 
-# Upload video to Google Drive
-def upload_video_to_drive(filepath):
-    logging.info("Uploading video to Google Drive...")
+# Upload file to Google Drive
+def upload_to_drive(filepath, mimetype):
+    logging.info("Uploading file to Google Drive...")
     credentials_json = os.getenv("GOOGLE_CREDENTIALS")
     folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
 
@@ -60,10 +60,10 @@ def upload_video_to_drive(filepath):
         "name": os.path.basename(filepath),
         "parents": [folder_id]
     }
-    media = MediaFileUpload(filepath, mimetype="video/mp4")
+    media = MediaFileUpload(filepath, mimetype=mimetype)
     uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
     public_url = uploaded.get("webViewLink")
-    logging.info(f"🎬 Video uploaded to Google Drive: {public_url}")
+    logging.info(f"📁 File uploaded to Google Drive: {public_url}")
     return public_url
 
 # Generate NPC
@@ -143,14 +143,12 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         logging.error(f"❌ Error creating video: {e}")
 
 # Post image and caption to Facebook via Make webhook
-def post_to_facebook_image(caption, image_path):
+def post_to_facebook_image(caption, image_url):
     logging.info("📤 Posting to Facebook via Make webhook...")
     try:
-        with open(image_path, "rb") as image_file:
-            encoded_image = base64.b64encode(image_file.read()).decode("utf-8")
         payload = {
             "caption": caption,
-            "image": encoded_image
+            "image_url": image_url
         }
         headers = {"Content-Type": "application/json"}
         response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
@@ -175,12 +173,13 @@ def run_worker():
 
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
     create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
-    video_url = upload_video_to_drive("npc_tiktok.mp4")
+    video_url = upload_to_drive("npc_tiktok.mp4", "video/mp4")
+    image_drive_url = upload_to_drive("npc_image.png", "image/png")
 
     caption = f"""📘 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
 #dnd #ttrpg #fantasy #npc"""
-    post_to_facebook_image(caption, image_path)
+    post_to_facebook_image(caption, image_drive_url)
     logging.info("🎉 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
@@ -191,6 +190,5 @@ def schedule_worker():
         schedule.run_pending()
         time.sleep(60)
 
-#if __name__ == "__main__":
-    run_worker()
-
+if __name__ == "__main__":
+    schedule_worker()
