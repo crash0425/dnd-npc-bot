@@ -145,13 +145,23 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
         logging.error(f"❌ Google Cloud TTS failed: {e}")
 
 # Generate Video
+
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     logging.info("\U0001F39E️ Creating video clip...")
     try:
-        clip = ImageClip(image_path).set_duration(10).resize(height=720)
+        clip = ImageClip(image_path).set_duration(10).resize(width=720)
         audio = AudioFileClip(audio_path)
         clip = clip.set_audio(audio)
-        clip.write_videofile(output_path, fps=12, codec="libx264", audio_codec="aac", preset="ultrafast", threads=2, logger=None)
+        clip.write_videofile(
+            output_path,
+            fps=24,
+            codec="libx264",
+            audio_codec="aac",
+            preset="ultrafast",
+            threads=2,
+            bitrate="1500k",
+            ffmpeg_params=["-pix_fmt", "yuv420p"]
+        )
         logging.info(f"✅ Video written to {output_path}")
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
