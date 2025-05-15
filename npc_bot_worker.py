@@ -166,20 +166,18 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
-# Post video and caption to Facebook via Make webhook
-def post_to_facebook_video(caption, video_url):
-    logging.info("\U0001F4E4 Posting video to Facebook via Make webhook...")
+# Post video binary to Facebook via Make webhook
+def post_video_binary_to_facebook(caption, filepath):
+    logging.info("📤 Posting binary video to Facebook via Make webhook...")
     try:
-        payload = {
-            "caption": caption,
-            "video_url": video_url
-        }
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
-        response.raise_for_status()
-        logging.info("✅ Facebook video post triggered successfully")
+        with open(filepath, "rb") as f:
+            files = {"video": f}
+            payload = {"caption": caption}
+            response = requests.post(MAKE_WEBHOOK_URL, data=payload, files=files)
+            response.raise_for_status()
+            logging.info("✅ Facebook video binary post triggered successfully")
     except Exception as e:
-        logging.error(f"❌ Failed to post video to Facebook: {e}")
+        logging.error(f"❌ Failed to post video binary: {e}")
 
 # Background Worker Logic
 def run_worker():
@@ -197,12 +195,11 @@ def run_worker():
 
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
     create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
-    video_drive_url = upload_to_drive("npc_tiktok.mp4", "video/mp4")
 
     caption = f"""\U0001F4D8 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
 #dnd #ttrpg #fantasy #npc"""
-    post_to_facebook_video(caption, video_drive_url)
+    post_video_binary_to_facebook(caption, "npc_tiktok.mp4")
     logging.info("\U0001F389 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
