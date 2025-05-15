@@ -192,4 +192,5 @@ def schedule_worker():
         time.sleep(60)
 
 if __name__ == "__main__":
-    schedule_worker()
+    run_worker()
+
