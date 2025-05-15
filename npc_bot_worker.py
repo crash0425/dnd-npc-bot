@@ -19,7 +19,7 @@ import schedule
 VOLUME_FOLDER = "npc_volumes"
 ARCHIVE_FILE = "npc_archive.txt"
 CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.com/2aa9c10f01")
-MAKE_WEBHOOK_URL = "https://hook.us2.make.com/rhwkubxkf96d8fe6ppowtkskxs46i7ei"
+MAKE_WEBHOOK_URL = "https://hook.us2.make.com/3ln2pn9sybanortfeg6ujitkv7cp32cx"
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
@@ -166,18 +166,20 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     except Exception as e:
         logging.error(f"❌ Error creating video: {e}")
 
-# Post video binary to Facebook via Make webhook
-def post_video_binary_to_facebook(caption, filepath):
-    logging.info("📤 Posting binary video to Facebook via Make webhook...")
+# Post video JSON to Facebook via Make webhook
+def post_video_json_to_facebook(caption, video_url):
+    logging.info("📤 Posting video JSON to Facebook via Make webhook...")
     try:
-        with open(filepath, "rb") as f:
-            files = {"video": f}
-            payload = {"caption": caption}
-            response = requests.post(MAKE_WEBHOOK_URL, data=payload, files=files)
-            response.raise_for_status()
-            logging.info("✅ Facebook video binary post triggered successfully")
+        payload = {
+            "caption": caption,
+            "video_url": video_url
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
+        response.raise_for_status()
+        logging.info("✅ Facebook video JSON post triggered successfully")
     except Exception as e:
-        logging.error(f"❌ Failed to post video binary: {e}")
+        logging.error(f"❌ Failed to post video JSON: {e}")
 
 # Background Worker Logic
 def run_worker():
@@ -195,11 +197,12 @@ def run_worker():
 
     generate_npc_audio(npc_text, output_path="npc_audio.mp3")
     create_npc_video("npc_image.png", "npc_audio.mp3", output_path="npc_tiktok.mp4")
+    video_drive_url = upload_to_drive("npc_tiktok.mp4", "video/mp4")
 
     caption = f"""\U0001F4D8 Here's your latest NPC!
 Download the full volume at {CONVERTKIT_LINK}
 #dnd #ttrpg #fantasy #npc"""
-    post_video_binary_to_facebook(caption, "npc_tiktok.mp4")
+    post_video_json_to_facebook(caption, video_drive_url)
     logging.info("\U0001F389 Worker completed successfully")
 
 # Trigger for manual testing or scheduled run
