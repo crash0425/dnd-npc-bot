@@ -143,7 +143,7 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         logging.error(f"❌ Error creating video: {e}")
 
 # Post image and caption to Facebook via Make webhook
-def post_to_facebook_image(caption, image_path):
+ddef post_to_facebook_image(caption, image_path):
     logging.info("📤 Posting to Facebook via Make webhook...")
     try:
         with open(image_path, "rb") as image_file:
