@@ -78,7 +78,7 @@ def upload_to_drive(filepath, mimetype):
     media = MediaFileUpload(filepath, mimetype=mimetype)
     uploaded = service.files().create(body=file_metadata, media_body=media, fields="id, webViewLink").execute()
     file_id = uploaded.get("id")
-direct_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&key={os.getenv('GOOGLE_DRIVE_API_KEY')}"
+    direct_url = f"https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&key={os.getenv('GOOGLE_DRIVE_API_KEY')}"
     logging.info(f"\U0001F517 Direct download URL: {direct_url}")
     return direct_url
 
