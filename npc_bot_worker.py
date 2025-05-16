@@ -83,7 +83,7 @@ def upload_to_drive(filepath, mimetype):
         fields="id"
     ).execute()
     file_id = uploaded.get("id")
-    direct_url = uploaded.get("webContentLink")
+    direct_url = f"https://drive.google.com/uc?export=download&id={uploaded['id']}"
     logging.info(f"\U0001F517 Direct download URL: {direct_url}")
     return direct_url
 
