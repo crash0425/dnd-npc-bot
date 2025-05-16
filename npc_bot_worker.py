@@ -162,12 +162,12 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
         clip = clip.set_audio(audio)
         clip.write_videofile(
             output_path,
-            fps=24,
+            fps=15,
             codec="libx264",
             audio_codec="aac",
             preset="ultrafast",
             threads=2,
-            bitrate="1500k",
+            bitrate="500k",
             ffmpeg_params=["-pix_fmt", "yuv420p"]
         )
         logging.info(f"✅ Video written to {output_path}")
