@@ -56,8 +56,8 @@ def create_video(image_path, audio_path, out="npc_tiktok.mp4"):
 
 # Post to Make webhook
 
-def post_to_make(caption, url)
-    logging.info("✅ NPC video posted and workflow complete."):
+def post_to_make(caption, url):
+    logging.info("✅ NPC video posted and workflow complete.")
     requests.post(MAKE_WEBHOOK_URL, json={"caption": caption, "video_url": url})
 
 # Main flow
@@ -81,11 +81,19 @@ def run_worker():
     generate_audio(backstory_line)
     create_video("npc_image.png", "npc_audio.mp3")
     url = upload_to_drive("npc_tiktok.mp4")
-    caption = f"📖 {backstory_line}
+    caption = f"""📖 {backstory_line}
 Download the full volume at {CONVERTKIT_LINK}
 Want more NPCs like this? Follow us and grab Volume 1 for free!
-#dnd #ttrpg #npc #backstory"
+#dnd #ttrpg #npc #backstory"""
     post_to_make(caption, url)
 
 if __name__ == "__main__":
-    run_worker()
+    if os.getenv("MODE", "run") == "schedule":
+        import schedule
+        schedule.every().sunday.at("10:00").do(run_worker)
+        schedule.every().wednesday.at("10:00").do(run_worker)
+        while True:
+            schedule.run_pending()
+            time.sleep(60)
+    else:
+        run_worker()
