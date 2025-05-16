@@ -70,6 +70,7 @@ def run_worker():
     description = lines[2].split(':', 1)[-1].strip().lower()
     gender_keywords = ["she", "her", "woman", "female"] if any(w in description for w in ["she", "her"]) else ["he", "him", "man", "male"] if any(w in description for w in ["he", "him"]) else []
     gender_text = "female" if any(g in gender_keywords for g in ["she", "her", "woman", "female"]) else "male" if any(g in gender_keywords for g in ["he", "him", "man", "male"]) else "person"
+    backstory_line = next((line for line in lines if line.lower().startswith("backstory")), full_npc)
     img_url = client.images.generate(
         model="dall-e-3",
         prompt=f"Portrait of a {gender_text} {race_class}, {backstory_line.lower()}, fantasy art, richly detailed, cinematic lighting",
