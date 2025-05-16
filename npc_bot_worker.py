@@ -174,8 +174,7 @@ def post_video_json_to_facebook(caption, video_url):
             "caption": caption,
             "video_url": video_url
         }
-        headers = {"Content-Type": "application/json"}
-        response = requests.post(MAKE_WEBHOOK_URL, data=json.dumps(payload), headers=headers)
+        response = requests.post(MAKE_WEBHOOK_URL, json=payload)
         response.raise_for_status()
         logging.info("✅ Facebook video JSON post triggered successfully")
     except Exception as e:
