@@ -42,7 +42,10 @@ def convert_to_direct_drive_link(share_url):
     match = re.search(r'/d/([a-zA-Z0-9_-]+)', share_url)
     if match:
         file_id = match.group(1)
-        return f'https://drive.google.com/uc?export=download&id={file_id}'
+        api_key = os.getenv("GOOGLE_DRIVE_API_KEY")
+        if not api_key:
+            raise ValueError("Missing GOOGLE_DRIVE_API_KEY")
+        return f'https://www.googleapis.com/drive/v3/files/{file_id}?alt=media&key={api_key}'
     else:
         raise ValueError("Invalid Google Drive share link format.")
 
