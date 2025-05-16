@@ -19,7 +19,7 @@ import schedule
 VOLUME_FOLDER = "npc_volumes"
 ARCHIVE_FILE = "npc_archive.txt"
 CONVERTKIT_LINK = os.getenv("CONVERTKIT_LINK", "https://fantasy-npc-forge.kit.com/2aa9c10f01")
-MAKE_WEBHOOK_URL = "https://hook.us2.make.com/3ln2pn9sybanortfeg6ujitkv7cp32cx"
+MAKE_WEBHOOK_URL = "https://hook.us2.make.com/rhwkubxkf96d8fe6ppowtkskxs46i7ei"
 
 # Setup
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s: %(message)s')
