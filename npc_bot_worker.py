@@ -72,7 +72,7 @@ def run_worker():
     gender_text = "female" if any(g in gender_keywords for g in ["she", "her", "woman", "female"]) else "male" if any(g in gender_keywords for g in ["he", "him", "man", "male"]) else "person"
     img_url = client.images.generate(
         model="dall-e-3",
-        prompt=f"Illustrated portrait of a {gender_text} {race_class} in a fantasy setting, expressive face, cinematic lighting",
+        prompt=f"Portrait of a {gender_text} {race_class}, {backstory_line.lower()}, fantasy art, richly detailed, cinematic lighting",
         n=1,
         size="1024x1024"
     ).data[0].url
