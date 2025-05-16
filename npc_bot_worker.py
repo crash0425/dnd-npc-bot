@@ -62,8 +62,73 @@ def post_to_make(caption, url):
 
 # Main flow
 
-def run_worker():
+def run_worker(index=None, arc_title="The Shadows of Emberdeep"):
+    # Load or initialize persistent index
+    index_file = "npc_arc_index.json"
+    if index is None:
+        if os.path.exists(index_file):
+            with open(index_file, "r") as f:
+                data = json.load(f)
+                index = data.get("index", 1)
+                arc_title = data.get("arc_title", arc_title)
+        else:
+            index = 1
+        else:
+            index = 1
+    else:
+        index = int(index)
+
+    # Save next index to file
+    with open(index_file, "w") as f:
+        if index < 8:
+            json.dump({"index": index + 1, "arc_title": arc_title}, f)
+        else:
+            arc_titles = [
+                "The Shadows of Emberdeep",
+                "Whispers from the Hollow",
+                "Ashes of the Starfall",
+                "The Curse of Vael'Tor",
+                "Echoes of the Forgotten Realms"
+            ]
+            next_arc = arc_titles[(arc_titles.index(arc_title) + 1) % len(arc_titles)] if arc_title in arc_titles else arc_titles[0]
+            json.dump({"index": 1, "arc_title": next_arc}, f)
+            arc_title = next_arc
     full_npc = generate_npc()
+    arc_dir = f"archive/{arc_title.replace(' ', '_')}"
+    os.makedirs(arc_dir, exist_ok=True)
+    with open(os.path.join(arc_dir, f"part_{index}.txt"), "w") as f:
+        f.write(full_npc)
+
+    # If this was the last NPC in the arc, compile to PDF
+    if index == 8:
+        from fpdf import FPDF
+        pdf = FPDF()
+        for i in range(1, 9):
+            part_file = os.path.join(arc_dir, f"part_{i}.txt")
+            if os.path.exists(part_file):
+                with open(part_file, "r") as f:
+                    content = f.read()
+                pdf.add_page()
+                pdf.set_auto_page_break(auto=True, margin=15)
+                pdf.set_font("Helvetica", style="B", size=14)
+                pdf.cell(0, 10, f"NPC {i} — {arc_title}", ln=True)
+                pdf.set_font("Helvetica", size=12)
+                pdf.set_font("Helvetica", size=12)
+                for line in content.splitlines():
+                    pdf.multi_cell(0, 10, line)
+        pdf_output = os.path.join(arc_dir, f"{arc_title.replace(' ', '_')}.pdf")
+        pdf.output(pdf_output)
+        logging.info(f"📄 PDF compiled: {pdf_output}")
+
+        # Upload PDF to Google Drive
+        creds = json.loads(os.getenv("GOOGLE_CREDENTIALS"))
+        folder_id = os.getenv("GOOGLE_DRIVE_FOLDER_ID")
+        service = build("drive", "v3", credentials=service_account.Credentials.from_service_account_info(creds))
+        file_metadata = {"name": os.path.basename(pdf_output), "parents": [folder_id]}
+        media = MediaFileUpload(pdf_output, mimetype="application/pdf")
+        file = service.files().create(body=file_metadata, media_body=media, fields="id").execute()
+        service.permissions().create(fileId=file["id"], body={"type": "anyone", "role": "reader"}).execute()
+        logging.info(f"📤 PDF uploaded to Google Drive: https://drive.google.com/uc?export=download&id={file['id']}")
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     lines = full_npc.splitlines()
     race_class = lines[1].split(':', 1)[-1].strip().replace("**", "").replace('[', '').replace(']', '').replace('—', '').strip()
@@ -86,7 +151,8 @@ def run_worker():
     generate_audio(backstory_line)
     create_video("npc_image.png", "npc_audio.mp3")
     url = upload_to_drive("npc_tiktok.mp4")
-    caption = f"""📖 {backstory_line}
+    caption = f"""📖 Part {index} of 8 — {arc_title}
+{backstory_line}
 Download the full volume at [fantasy-npc-forge.kit.com](https://fantasy-npc-forge.kit.com/2aa9c10f01)
 Want more NPCs like this? Follow us and grab Volume 1 for free!
 #dnd #ttrpg #npc #backstory"""
