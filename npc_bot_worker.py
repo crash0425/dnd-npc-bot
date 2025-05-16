@@ -71,8 +71,7 @@ def run_worker(index=None, arc_title="The Shadows of Emberdeep"):
                 data = json.load(f)
                 index = data.get("index", 1)
                 arc_title = data.get("arc_title", arc_title)
-        else:
-            index = 1
+        
         else:
             index = 1
     else:
