@@ -156,7 +156,8 @@ def generate_npc_audio(text, output_path="npc_audio.mp3"):
 def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     logging.info("\U0001F39E️ Creating video clip...")
     try:
-        clip = ImageClip(image_path).set_duration(10).resize(width=720)
+        audio = AudioFileClip(audio_path)
+        clip = ImageClip(image_path).set_duration(audio.duration).resize(width=720)
         audio = AudioFileClip(audio_path)
         clip = clip.set_audio(audio)
         clip.write_videofile(
