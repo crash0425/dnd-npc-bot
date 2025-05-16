@@ -157,7 +157,7 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
     logging.info("\U0001F39E️ Creating video clip...")
     try:
         audio = AudioFileClip(audio_path)
-        clip = ImageClip(image_path).set_duration(audio.duration).resize(width=720)
+        clip = ImageClip(image_path).set_duration(min(audio.duration, 25)).resize(width=640)
         audio = AudioFileClip(audio_path)
         clip = clip.set_audio(audio)
         clip.write_videofile(
@@ -167,7 +167,7 @@ def create_npc_video(image_path, audio_path, output_path="npc_tiktok.mp4"):
             audio_codec="aac",
             preset="ultrafast",
             threads=2,
-            bitrate="500k",
+            bitrate="300k",
             ffmpeg_params=["-pix_fmt", "yuv420p"]
         )
         logging.info(f"✅ Video written to {output_path}")
