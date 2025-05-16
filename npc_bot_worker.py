@@ -72,9 +72,9 @@ def run_worker():
     gender_text = "female" if any(g in gender_keywords for g in ["she", "her", "woman", "female"]) else "male" if any(g in gender_keywords for g in ["he", "him", "man", "male"]) else "person"
     backstory_line = next((line for line in lines if line.lower().startswith("backstory")), full_npc)
     backstory_line = backstory_line.replace("Backstory:", "").strip().replace('"', '').replace("'", "").replace('[', '').replace(']', '').replace('—', '')
-    backstory_line = (backstory_line[:100] + "...") if len(backstory_line) > 100 else backstory_line
+    backstory_line = ' '.join(backstory_line.split()[:60]) + ('...' if len(backstory_line.split()) > 60 else '')
     backstory_clean = backstory_line.replace("Backstory:", "").strip().replace('"', '').replace("'", "").replace('[', '').replace(']', '').replace('—', '')
-    backstory_clean = (backstory_clean[:100] + "...") if len(backstory_clean) > 100 else backstory_clean
+    backstory_clean = ' '.join(backstory_clean.split()[:60]) + ('...' if len(backstory_clean.split()) > 60 else '')
     prompt = f"Portrait of a {gender_text} {race_class}, {backstory_clean.lower()}, fantasy art, richly detailed, cinematic lighting"
     img_url = client.images.generate(
         model="dall-e-3",
@@ -83,7 +83,6 @@ def run_worker():
         size="1024x1024"
     ).data[0].url
     with open("npc_image.png", "wb") as f: f.write(requests.get(img_url).content)
-    backstory_line = next((line for line in lines if line.lower().startswith("backstory")), full_npc)
     generate_audio(backstory_line)
     create_video("npc_image.png", "npc_audio.mp3")
     url = upload_to_drive("npc_tiktok.mp4")
