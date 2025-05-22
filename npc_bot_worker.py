@@ -51,7 +51,7 @@ def generate_audio(text, out="npc_audio.mp3"):
 
 def create_video(image_path, audio_path, out="npc_tiktok.mp4"):
     audio = AudioFileClip(audio_path)
-    clip = ImageClip(image_path).set_duration(min(audio.duration, 25)).resize(width=640).set_audio(audio)
+    clip = ImageClip(image_path).set_duration(audio.duration).resize(width=640).set_audio(audio)
     clip.write_videofile(out, fps=15, codec="libx264", audio_codec="aac", preset="ultrafast", threads=2, bitrate="300k", ffmpeg_params=["-pix_fmt", "yuv420p"])
 
 # Post to Make webhook
@@ -136,9 +136,11 @@ def run_worker(index=None, arc_title="The Shadows of Emberdeep"):
     gender_text = "female" if any(g in gender_keywords for g in ["she", "her", "woman", "female"]) else "male" if any(g in gender_keywords for g in ["he", "him", "man", "male"]) else "person"
     backstory_line = next((line for line in lines if line.lower().startswith("backstory")), full_npc)
     backstory_line = backstory_line.replace("Backstory:", "").strip().replace('"', '').replace("'", "").replace('[', '').replace(']', '').replace('—', '')
-    backstory_line = ' '.join(backstory_line.split()[:60]) + ('...' if len(backstory_line.split()) > 60 else '')
+    approx_words_per_second = 2.5
+    max_words = int(25 * approx_words_per_second)
+    backstory_line = ' '.join(backstory_line.split()[:max_words]) + ('...' if len(backstory_line.split()) > max_words else '')
     backstory_clean = backstory_line.replace("Backstory:", "").strip().replace('"', '').replace("'", "").replace('[', '').replace(']', '').replace('—', '')
-    backstory_clean = ' '.join(backstory_clean.split()[:60]) + ('...' if len(backstory_clean.split()) > 60 else '')
+    backstory_clean = ' '.join(backstory_clean.split()[:max_words]) + ('...' if len(backstory_clean.split()) > max_words else '')
     prompt = f"Portrait of a {gender_text} {race_class}, {backstory_clean.lower()}, fantasy art, richly detailed, cinematic lighting"
     try:
         logging.info(f"🎨 Generating image with prompt: {prompt}")
