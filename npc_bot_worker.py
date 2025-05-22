@@ -140,12 +140,24 @@ def run_worker(index=None, arc_title="The Shadows of Emberdeep"):
     backstory_clean = backstory_line.replace("Backstory:", "").strip().replace('"', '').replace("'", "").replace('[', '').replace(']', '').replace('—', '')
     backstory_clean = ' '.join(backstory_clean.split()[:60]) + ('...' if len(backstory_clean.split()) > 60 else '')
     prompt = f"Portrait of a {gender_text} {race_class}, {backstory_clean.lower()}, fantasy art, richly detailed, cinematic lighting"
-    img_url = client.images.generate(
-        model="dall-e-3",
-        prompt=prompt,
-        n=1,
-        size="1024x1024"
-    ).data[0].url
+    try:
+        logging.info(f"🎨 Generating image with prompt: {prompt}")
+        img_url = client.images.generate(
+            model="dall-e-3",
+            prompt=prompt,
+            n=1,
+            size="1024x1024"
+        ).data[0].url
+    except Exception as e:
+        logging.error(f"❌ Failed to generate image: {e}")
+        fallback_prompt = "Portrait of a fantasy NPC, cinematic lighting, richly detailed, fantasy art"
+        logging.info(f"🎨 Using fallback prompt: {fallback_prompt}")
+        img_url = client.images.generate(
+            model="dall-e-3",
+            prompt=fallback_prompt,
+            n=1,
+            size="1024x1024"
+        ).data[0].url
     with open("npc_image.png", "wb") as f: f.write(requests.get(img_url).content)
     generate_audio(backstory_line)
     create_video("npc_image.png", "npc_audio.mp3")
